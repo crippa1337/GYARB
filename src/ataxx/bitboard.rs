@@ -53,6 +53,12 @@ impl Not for BitBoard {
     }
 }
 
+const ATAXX: u64 = 0x1ffffffffffff;
+const A_FILE: u64 = 0x40810204081;
+const B_FILE: u64 = 0x81020408102;
+const F_FILE: u64 = 0x10204081020;
+const H_FILE: u64 = 0x1020408102040;
+
 // Board structure
 // 42 43 44 45 46 47 48
 // 35 36 37 38 39 40 41
@@ -61,10 +67,6 @@ impl Not for BitBoard {
 // 14 15 16 17 18 19 20
 // 07 08 09 10 11 12 13
 // 00 01 02 03 04 05 06
-
-const ATAXX: u64 = 0x1ffffffffffff;
-const A_FILE: u64 = 0x40810204081;
-const H_FILE: u64 = 0x1020408102040;
 
 impl BitBoard {
     #[allow(dead_code)]
@@ -89,13 +91,31 @@ impl BitBoard {
 
     pub fn singles(&self) -> BitBoard {
         BitBoard(
-            // Vertical
+            // U             // D
             ((self.0 << 7) | (self.0 >> 7) |
-            // Right
-            (((self.0 << 1) | (self.0 << 8) | (self.0 >> 6)) & (!A_FILE)) |
-            // Left
-            (((self.0 << 6) | (self.0 >> 1) | (self.0 >> 8)) & (!H_FILE)))
+            // R              // RU           // RD
+            (((self.0 << 1) | (self.0 << 8) | (self.0 >> 6)) & !A_FILE) |
+            // L              // LU           // LD
+            (((self.0 >> 1) | (self.0 << 6) | (self.0 >> 8)) & !H_FILE))
                 & ATAXX,
+        )
+    }
+
+    #[rustfmt::skip]
+    pub fn doubles(&self) -> BitBoard {
+        BitBoard(
+            (
+                // UU            // DD
+                (self.0 << 14) | (self.0 >> 14) |
+                // RUU             // RDD
+                (((self.0 << 15) | (self.0 >> 13)) & !A_FILE) |
+                // LUU             // LDD
+                (((self.0 << 13) | (self.0 >> 15)) & !H_FILE) |
+                // RR              // RRUU         // RRDD          // RRU          // RRD
+                (((self.0 << 2) | (self.0 << 16) | (self.0 >> 12) | (self.0 << 9) | (self.0 >> 5)) & !(A_FILE | B_FILE)) |
+                // LL              // LLUU         // LLDD          // LLU          // LLD
+                (((self.0 >> 2) | (self.0 << 12) | (self.0 >> 16) | (self.0 << 5) | (self.0 >> 9)) & !(F_FILE | H_FILE))
+            ) & ATAXX,
         )
     }
 }
@@ -175,5 +195,21 @@ mod tests {
         assert_eq!(BitBoard(0x0).singles(), BitBoard(0x0));
         assert_eq!(BitBoard(0x1).singles(), BitBoard(0x182));
         assert_eq!(BitBoard(0x100).singles(), BitBoard(0x1c287));
+        assert_eq!(
+            BitBoard(0x1000000000000).singles(),
+            BitBoard(0x830000000000)
+        );
+        assert_eq!(BitBoard(1).singles(), BitBoard(0x182));
+    }
+
+    #[test]
+    fn doubles() {
+        assert_eq!(BitBoard(0x0).doubles(), BitBoard(0x0));
+        assert_eq!(BitBoard(0x1).doubles(), BitBoard(0x1c204));
+        assert_eq!(BitBoard(0x100).doubles(), BitBoard(0x1e20408));
+        assert_eq!(
+            BitBoard(0x400000000000).doubles(),
+            BitBoard(0x11227c0000000)
+        );
     }
 }
