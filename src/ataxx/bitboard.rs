@@ -67,20 +67,36 @@ const A_FILE: u64 = 0x40810204081;
 const H_FILE: u64 = 0x1020408102040;
 
 impl BitBoard {
+    #[allow(dead_code)]
     pub fn north(&self) -> BitBoard {
         BitBoard((self.0 << 7) & ATAXX)
     }
 
+    #[allow(dead_code)]
     pub fn south(&self) -> BitBoard {
         BitBoard(self.0 >> 7)
     }
 
+    #[allow(dead_code)]
     pub fn east(&self) -> BitBoard {
         BitBoard((self.0 << 1) & (!A_FILE))
     }
 
+    #[allow(dead_code)]
     pub fn west(&self) -> BitBoard {
         BitBoard((self.0 >> 1) & (!H_FILE))
+    }
+
+    pub fn singles(&self) -> BitBoard {
+        BitBoard(
+            // Vertical
+            ((self.0 << 7) | (self.0 >> 7) |
+            // Right
+            (((self.0 << 1) | (self.0 << 8) | (self.0 >> 6)) & (!A_FILE)) |
+            // Left
+            (((self.0 << 6) | (self.0 >> 1) | (self.0 >> 8)) & (!H_FILE)))
+                & ATAXX,
+        )
     }
 }
 
@@ -151,5 +167,13 @@ mod tests {
         assert_eq!(BitBoard(0x1000000).west(), BitBoard(0x800000));
         assert_eq!(BitBoard(0x0).west(), BitBoard(0x0));
         assert_eq!(BitBoard(0x1).west(), BitBoard(0x0));
+    }
+
+    #[test]
+    fn singles() {
+        assert_eq!(BitBoard(0x200).singles(), BitBoard(0x3850e));
+        assert_eq!(BitBoard(0x0).singles(), BitBoard(0x0));
+        assert_eq!(BitBoard(0x1).singles(), BitBoard(0x182));
+        assert_eq!(BitBoard(0x100).singles(), BitBoard(0x1c287));
     }
 }
