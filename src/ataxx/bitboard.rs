@@ -1,7 +1,33 @@
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-struct BitBoard(u64);
+pub struct BitBoard(pub u64);
+
+#[derive(Debug, Clone)]
+pub struct BitBoardIter(u64);
+
+impl Iterator for BitBoardIter {
+    type Item = u8;
+
+    fn next(&mut self) -> Option<u8> {
+        if self.0 == 0 {
+            None
+        } else {
+            let index = self.0.trailing_zeros() as u8;
+            self.0 &= self.0 - 1;
+            Some(index)
+        }
+    }
+}
+
+impl IntoIterator for BitBoard {
+    type Item = u8;
+    type IntoIter = BitBoardIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        BitBoardIter(self.0)
+    }
+}
 
 impl BitAnd for BitBoard {
     type Output = BitBoard;
@@ -49,11 +75,11 @@ impl Not for BitBoard {
     type Output = BitBoard;
 
     fn not(self) -> Self::Output {
-        BitBoard(!self.0 & ATAXX)
+        BitBoard(!self.0 & FULL)
     }
 }
 
-const ATAXX: u64 = 0x1ffffffffffff;
+pub const FULL: u64 = 0x1ffffffffffff;
 const A_FILE: u64 = 0x40810204081;
 const B_FILE: u64 = 0x81020408102;
 const F_FILE: u64 = 0x10204081020;
@@ -69,9 +95,21 @@ const H_FILE: u64 = 0x1020408102040;
 // 00 01 02 03 04 05 06
 
 impl BitBoard {
+    pub const fn from_index(sq: u8) -> BitBoard {
+        BitBoard(1u64 << sq)
+    }
+
+    pub const fn popcnt(&self) -> u32 {
+        self.0.count_ones()
+    }
+
+    pub const fn full() -> BitBoard {
+        BitBoard(FULL)
+    }
+
     #[allow(dead_code)]
     pub fn north(&self) -> BitBoard {
-        BitBoard((self.0 << 7) & ATAXX)
+        BitBoard((self.0 << 7) & FULL)
     }
 
     #[allow(dead_code)]
@@ -97,7 +135,7 @@ impl BitBoard {
             (((self.0 << 1) | (self.0 << 8) | (self.0 >> 6)) & !A_FILE) |
             // L              // LU           // LD
             (((self.0 >> 1) | (self.0 << 6) | (self.0 >> 8)) & !H_FILE))
-                & ATAXX,
+                & FULL,
         )
     }
 
@@ -115,7 +153,7 @@ impl BitBoard {
                 (((self.0 << 2) | (self.0 << 16) | (self.0 >> 12) | (self.0 << 9) | (self.0 >> 5)) & !(A_FILE | B_FILE)) |
                 // LL              // LLUU         // LLDD          // LLU          // LLD
                 (((self.0 >> 2) | (self.0 << 12) | (self.0 >> 16) | (self.0 << 5) | (self.0 >> 9)) & !(F_FILE | H_FILE))
-            ) & ATAXX,
+            ) & FULL,
         )
     }
 }
@@ -144,7 +182,7 @@ mod tests {
     fn bitnot() {
         assert_eq!(!BitBoard(0), BitBoard(0x1ffffffffffff));
         assert_eq!(!BitBoard(0x1ffffffffffff), BitBoard(0));
-        assert_eq!(!BitBoard(A_FILE), BitBoard(ATAXX) ^ BitBoard(A_FILE));
+        assert_eq!(!BitBoard(A_FILE), BitBoard(FULL) ^ BitBoard(A_FILE));
     }
 
     #[test]
@@ -211,5 +249,12 @@ mod tests {
             BitBoard(0x400000000000).doubles(),
             BitBoard(0x11227c0000000)
         );
+    }
+
+    #[test]
+    fn from_index() {
+        assert_eq!(BitBoard::from_index(0), BitBoard(1));
+        assert_eq!(BitBoard::from_index(25), BitBoard(0x2000000));
+        assert_eq!(BitBoard::from_index(47), BitBoard(0x800000000000));
     }
 }
