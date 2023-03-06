@@ -79,12 +79,6 @@ impl Not for BitBoard {
     }
 }
 
-pub const FULL: u64 = 0x1ffffffffffff;
-const A_FILE: u64 = 0x40810204081;
-const B_FILE: u64 = 0x81020408102;
-const F_FILE: u64 = 0x10204081020;
-const H_FILE: u64 = 0x1020408102040;
-
 // Board structure
 // 42 43 44 45 46 47 48
 // 35 36 37 38 39 40 41
@@ -94,9 +88,33 @@ const H_FILE: u64 = 0x1020408102040;
 // 07 08 09 10 11 12 13
 // 00 01 02 03 04 05 06
 
+pub const FULL: u64 = 0x1ffffffffffff;
+const FILE_A: u64 = 0x40810204081;
+const FILE_B: u64 = 0x81020408102;
+const FILE_C: u64 = 0x102040810204;
+const FILE_D: u64 = 0x204081020408;
+const FILE_E: u64 = 0x408102040810;
+const FILE_F: u64 = 0x810204081020;
+const FILE_G: u64 = 0x1020408102040;
+
+const RANK_1: u64 = 0x7f;
+const RANK_2: u64 = 0x3f80;
+const RANK_3: u64 = 0x1fc000;
+const RANK_4: u64 = 0xfe00000;
+const RANK_5: u64 = 0x7f0000000;
+const RANK_6: u64 = 0x3f800000000;
+const RANK_7: u64 = 0x1fc0000000000;
+
+const FILES: [u64; 7] = [FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G];
+const RANKS: [u64; 7] = [RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7];
+
 impl BitBoard {
     pub const fn from_index(sq: u8) -> BitBoard {
         BitBoard(1u64 << sq)
+    }
+
+    pub const fn from_square(file: usize, rank: usize) -> BitBoard {
+        BitBoard(FILES[file] & RANKS[rank])
     }
 
     pub const fn popcnt(&self) -> u32 {
@@ -119,12 +137,12 @@ impl BitBoard {
 
     #[allow(dead_code)]
     pub fn east(&self) -> BitBoard {
-        BitBoard((self.0 << 1) & (!A_FILE))
+        BitBoard((self.0 << 1) & (!FILE_A))
     }
 
     #[allow(dead_code)]
     pub fn west(&self) -> BitBoard {
-        BitBoard((self.0 >> 1) & (!H_FILE))
+        BitBoard((self.0 >> 1) & (!FILE_G))
     }
 
     pub fn singles(&self) -> BitBoard {
@@ -132,9 +150,9 @@ impl BitBoard {
             // U             // D
             ((self.0 << 7) | (self.0 >> 7) |
             // R              // RU           // RD
-            (((self.0 << 1) | (self.0 << 8) | (self.0 >> 6)) & !A_FILE) |
+            (((self.0 << 1) | (self.0 << 8) | (self.0 >> 6)) & !FILE_A) |
             // L              // LU           // LD
-            (((self.0 >> 1) | (self.0 << 6) | (self.0 >> 8)) & !H_FILE))
+            (((self.0 >> 1) | (self.0 << 6) | (self.0 >> 8)) & !FILE_G))
                 & FULL,
         )
     }
@@ -146,13 +164,13 @@ impl BitBoard {
                 // UU            // DD
                 (self.0 << 14) | (self.0 >> 14) |
                 // RUU             // RDD
-                (((self.0 << 15) | (self.0 >> 13)) & !A_FILE) |
+                (((self.0 << 15) | (self.0 >> 13)) & !FILE_A) |
                 // LUU             // LDD
-                (((self.0 << 13) | (self.0 >> 15)) & !H_FILE) |
+                (((self.0 << 13) | (self.0 >> 15)) & !FILE_G) |
                 // RR              // RRUU         // RRDD          // RRU          // RRD
-                (((self.0 << 2) | (self.0 << 16) | (self.0 >> 12) | (self.0 << 9) | (self.0 >> 5)) & !(A_FILE | B_FILE)) |
+                (((self.0 << 2) | (self.0 << 16) | (self.0 >> 12) | (self.0 << 9) | (self.0 >> 5)) & !(FILE_A | FILE_B)) |
                 // LL              // LLUU         // LLDD          // LLU          // LLD
-                (((self.0 >> 2) | (self.0 << 12) | (self.0 >> 16) | (self.0 << 5) | (self.0 >> 9)) & !(F_FILE | H_FILE))
+                (((self.0 >> 2) | (self.0 << 12) | (self.0 >> 16) | (self.0 << 5) | (self.0 >> 9)) & !(FILE_F | FILE_G))
             ) & FULL,
         )
     }
@@ -182,7 +200,7 @@ mod tests {
     fn bitnot() {
         assert_eq!(!BitBoard(0), BitBoard(0x1ffffffffffff));
         assert_eq!(!BitBoard(0x1ffffffffffff), BitBoard(0));
-        assert_eq!(!BitBoard(A_FILE), BitBoard(FULL) ^ BitBoard(A_FILE));
+        assert_eq!(!BitBoard(FILE_A), BitBoard(FULL) ^ BitBoard(FILE_A));
     }
 
     #[test]
@@ -249,6 +267,7 @@ mod tests {
             BitBoard(0x400000000000).doubles(),
             BitBoard(0x11227c0000000)
         );
+        assert_eq!(BitBoard(0x40000000000).doubles(), BitBoard(0x102070000000));
     }
 
     #[test]
@@ -256,5 +275,11 @@ mod tests {
         assert_eq!(BitBoard::from_index(0), BitBoard(1));
         assert_eq!(BitBoard::from_index(25), BitBoard(0x2000000));
         assert_eq!(BitBoard::from_index(47), BitBoard(0x800000000000));
+    }
+
+    #[test]
+    fn from_square() {
+        assert_eq!(BitBoard::from_square(0, 0), BitBoard(1));
+        assert_eq!(BitBoard::from_square(3, 3), BitBoard(0x1000000));
     }
 }
