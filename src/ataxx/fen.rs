@@ -22,7 +22,6 @@ impl Position {
             return Err(FenError::Illegal);
         }
 
-        let mut i = 0;
         let mut x = 0;
         let mut y = 6;
 
@@ -30,38 +29,27 @@ impl Position {
             match c {
                 'x' => {
                     black |= BitBoard::from_square(x, y);
-                    i += 1;
                     x += 1;
                 }
                 'o' => {
                     white |= BitBoard::from_square(x, y);
-                    i += 1;
                     x += 1;
                 }
                 '-' => {
                     gaps |= BitBoard::from_square(x, y);
-                    i += 1;
                     x += 1;
                 }
                 z if z.is_ascii_digit() => {
-                    let delta = z.to_digit(10).unwrap() as usize;
-                    i += delta;
-                    x += delta;
+                    x += z.to_digit(10).unwrap() as usize;
                 }
                 '/' => {
-                    assert!(i % 7 == 0)
+                    assert!(x % 7 == 0);
+                    x = 0;
+                    y -= 1;
                 }
                 _ => return Err(FenError::Illegal),
             }
-
-            // Move to next row
-            if x == 7 && y != 0 {
-                x = 0;
-                y -= 1;
-            }
         }
-
-        assert!(i == 49, "FEN string did not contain 49 squares");
 
         let turn = match fen[1] {
             "x" => Side::Black,
