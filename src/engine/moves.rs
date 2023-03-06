@@ -1,5 +1,8 @@
 use super::statvec::StaticVec;
-use crate::ataxx::position::{Position, Side};
+use crate::ataxx::{
+    bitboard::BitBoard,
+    position::{Position, Side},
+};
 
 const MAX_MOVES: usize = 256;
 
@@ -48,18 +51,49 @@ impl Position {
         }
 
         for sq in s2m {
-            let doubles = s2m.doubles() & empty;
+            let doubles = BitBoard::from_index(sq).doubles() & empty;
             for sq2 in doubles {
                 let mv = Move::new(sq, sq2, MoveType::Double);
                 moves.push(mv);
             }
         }
 
-        for mv in moves.as_slice() {
-            println!("{:?}", mv)
+        moves
+    }
+
+    pub fn make_move(&mut self, mv: Move) {
+        // Info
+        self.turn = match self.turn {
+            Side::Black => Side::White,
+            Side::White => Side::Black,
+        };
+
+        self.half_moves += 1;
+        if self.turn == Side::White {
+            self.full_moves += 1;
         }
 
-        moves
+        // Move stone
+        let from = BitBoard::from_index(mv.from);
+        let to = BitBoard::from_index(mv.to);
+        let mut s2m = self.colored_squares(self.turn);
+        let mut opponent = self.colored_squares(!self.turn);
+
+        match mv.move_type {
+            MoveType::Single => {
+                s2m |= to;
+            }
+            MoveType::Double => {
+                s2m ^= from;
+                s2m |= to;
+            }
+            MoveType::Null => panic!("Make move called with null move"),
+        }
+
+        // Captures
+        let captured = to.singles() & opponent;
+        opponent ^= captured;
+        s2m |= captured;
     }
 }
 

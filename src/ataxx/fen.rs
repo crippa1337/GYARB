@@ -86,38 +86,40 @@ impl Position {
         let mut fen = String::new();
         let mut empty = 0;
 
-        for i in 0..49u8 {
-            let idx = BitBoard::from_index(i);
+        for y in (0..=6).rev() {
+            for x in 0..=6 {
+                let idx = BitBoard::from_square(x, y);
 
-            if self.black & idx != BitBoard(0) {
-                if empty > 0 {
-                    fen.push_str(&empty.to_string());
-                    empty = 0;
+                if self.black & idx != BitBoard(0) {
+                    if empty > 0 {
+                        fen.push_str(&empty.to_string());
+                        empty = 0;
+                    }
+                    fen.push('x');
+                } else if self.white & idx != BitBoard(0) {
+                    if empty > 0 {
+                        fen.push_str(&empty.to_string());
+                        empty = 0;
+                    }
+                    fen.push('o');
+                } else if self.gaps & idx != BitBoard(0) {
+                    if empty > 0 {
+                        fen.push_str(&empty.to_string());
+                        empty = 0;
+                    }
+                    fen.push('-');
+                } else {
+                    empty += 1;
                 }
-                fen.push('x');
-            } else if self.white & idx != BitBoard(0) {
-                if empty > 0 {
-                    fen.push_str(&empty.to_string());
-                    empty = 0;
-                }
-                fen.push('o');
-            } else if self.gaps & idx != BitBoard(0) {
-                if empty > 0 {
-                    fen.push_str(&empty.to_string());
-                    empty = 0;
-                }
-                fen.push('-');
-            } else {
-                empty += 1;
-            }
 
-            // Slash at the end of a row, but not at the end
-            if i % 7 == 6 && i != 48 {
-                if empty > 0 {
-                    fen.push_str(&empty.to_string());
-                    empty = 0;
+                // Slash at the end of a row, but not at the end
+                if x == 6 && y != 0 {
+                    if empty > 0 {
+                        fen.push_str(&empty.to_string());
+                        empty = 0;
+                    }
+                    fen.push('/');
                 }
-                fen.push('/');
             }
         }
 

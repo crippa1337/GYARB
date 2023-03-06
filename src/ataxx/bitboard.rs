@@ -94,7 +94,7 @@ const FILE_B: u64 = 0x81020408102;
 const FILE_C: u64 = 0x102040810204;
 const FILE_D: u64 = 0x204081020408;
 const FILE_E: u64 = 0x408102040810;
-const FILE_F: u64 = 0x10204081020;
+const FILE_F: u64 = 0x810204081020;
 const FILE_G: u64 = 0x1020408102040;
 
 const RANK_1: u64 = 0x7f;
@@ -267,6 +267,7 @@ mod tests {
             BitBoard(0x400000000000).doubles(),
             BitBoard(0x11227c0000000)
         );
+        assert_eq!(BitBoard(0x40000000000).doubles(), BitBoard(0x102070000000));
     }
 
     #[test]

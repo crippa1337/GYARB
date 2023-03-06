@@ -1,11 +1,22 @@
 use super::bitboard::BitBoard;
 use crate::engine::moves::Move;
-use std::fmt::Display;
+use std::{fmt::Display, ops::Not};
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Side {
     Black,
     White,
+}
+
+impl Not for Side {
+    type Output = Side;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Side::Black => Side::White,
+            Side::White => Side::Black,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -28,11 +39,6 @@ impl Position {
             Side::Black => self.black,
             Side::White => self.white,
         }
-    }
-
-    pub fn make_move(mv: Move) {
-        assert!(mv != Move::null());
-        assert!(mv.to != 49)
     }
 }
 
@@ -83,5 +89,6 @@ mod tests {
     fn colored_squares() {
         let fen = "x5o/7/7/7/7/7/o5x x 0 1";
         let p = Position::from_fen(fen).unwrap();
+        assert_eq!(p.colored_squares(Side::Black), &BitBoard(0x1040000000041));
     }
 }
