@@ -62,7 +62,7 @@ impl Position {
             }
         }
 
-        assert!(i == 49);
+        assert!(i == 49, "FEN string did not contain 49 squares");
         let occupied = black | white;
 
         let turn = match fen[1] {
@@ -154,6 +154,10 @@ impl Position {
 
         fen
     }
+
+    pub fn empty(&self) -> BitBoard {
+        !(self.black | self.white | self.gaps)
+    }
 }
 
 impl Display for Position {
@@ -234,5 +238,20 @@ mod tests {
         for fen in fens.iter() {
             assert!(Position::from_fen(fen).is_err());
         }
+    }
+
+    #[test]
+    fn empty() {
+        let fen = "x5o/7/7/7/7/7/o5x x 0 1";
+        let p = Position::from_fen(fen).unwrap();
+        assert_eq!(p.empty(), BitBoard(0xfbffffffffbe));
+
+        let fen = "7/7/7/7/7/7/7 x 0 1";
+        let p = Position::from_fen(fen).unwrap();
+        assert_eq!(p.empty(), BitBoard(0x1ffffffffffff));
+
+        let fen = "-5o/7/7/7/7/7/-5x o 0 1";
+        let p = Position::from_fen(fen).unwrap();
+        assert_eq!(p.empty(), BitBoard(0xfbffffffffbe));
     }
 }
