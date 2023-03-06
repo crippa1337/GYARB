@@ -40,6 +40,13 @@ impl Position {
             Side::White => self.white,
         }
     }
+
+    pub fn colored_squares_mut(&mut self, side: Side) -> (&mut BitBoard, &mut BitBoard) {
+        match side {
+            Side::Black => (&mut self.black, &mut self.white),
+            Side::White => (&mut self.white, &mut self.black),
+        }
+    }
 }
 
 impl Display for Position {
@@ -88,7 +95,12 @@ mod tests {
     #[test]
     fn colored_squares() {
         let fen = "x5o/7/7/7/7/7/o5x x 0 1";
-        let p = Position::from_fen(fen).unwrap();
-        assert_eq!(p.colored_squares(Side::Black), &BitBoard(0x1040000000041));
+        let mut p = Position::from_fen(fen).unwrap();
+        let black = p.colored_squares(Side::Black);
+        assert_eq!(black, BitBoard(0x40000000040));
+
+        let white = p.colored_squares_mut(Side::White);
+        *white.0 &= BitBoard(0);
+        assert_eq!(*white.0, BitBoard(0));
     }
 }

@@ -7,34 +7,18 @@ use crate::ataxx::{
 const MAX_MOVES: usize = 256;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub enum MoveType {
-    Null,
-    Single,
-    Double,
-}
-
-#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Move {
     pub from: u8,
     pub to: u8,
-    pub move_type: MoveType,
 }
 
 impl Move {
-    pub fn new(from: u8, to: u8, move_type: MoveType) -> Move {
-        Move {
-            from,
-            to,
-            move_type,
-        }
+    pub fn new(from: u8, to: u8) -> Move {
+        Move { from, to }
     }
 
     pub fn null() -> Move {
-        Move {
-            from: 49,
-            to: 49,
-            move_type: MoveType::Null,
-        }
+        Move { from: 49, to: 49 }
     }
 }
 
@@ -46,14 +30,14 @@ impl Position {
 
         let singles = s2m.singles() & empty;
         for sq in singles {
-            let mv = Move::new(49, sq, MoveType::Single);
+            let mv = Move::new(sq, sq);
             moves.push(mv);
         }
 
         for sq in s2m {
             let doubles = BitBoard::from_index(sq).doubles() & empty;
             for sq2 in doubles {
-                let mv = Move::new(sq, sq2, MoveType::Double);
+                let mv = Move::new(sq, sq2);
                 moves.push(mv);
             }
         }
@@ -62,38 +46,24 @@ impl Position {
     }
 
     pub fn make_move(&mut self, mv: Move) {
-        // Info
-        self.turn = match self.turn {
-            Side::Black => Side::White,
-            Side::White => Side::Black,
-        };
+        // Move stone
+        let from = BitBoard::from_index(mv.from);
+        let to = BitBoard::from_index(mv.to);
+        let (s2m, opponent) = self.colored_squares_mut(self.turn);
 
+        *s2m ^= from | to;
+
+        // Captures
+        let captured = to.singles() & *opponent;
+        *opponent ^= captured;
+        *s2m |= captured;
+
+        // Info
+        self.turn = !self.turn;
         self.half_moves += 1;
         if self.turn == Side::White {
             self.full_moves += 1;
         }
-
-        // Move stone
-        let from = BitBoard::from_index(mv.from);
-        let to = BitBoard::from_index(mv.to);
-        let mut s2m = self.colored_squares(self.turn);
-        let mut opponent = self.colored_squares(!self.turn);
-
-        match mv.move_type {
-            MoveType::Single => {
-                s2m |= to;
-            }
-            MoveType::Double => {
-                s2m ^= from;
-                s2m |= to;
-            }
-            MoveType::Null => panic!("Make move called with null move"),
-        }
-
-        // Captures
-        let captured = to.singles() & opponent;
-        opponent ^= captured;
-        s2m |= captured;
     }
 }
 
@@ -107,5 +77,25 @@ mod tests {
         let pos = Position::from_fen("x5o/7/7/7/7/7/o5x x 0 1").unwrap();
         let moves = pos.generate_moves();
         assert_eq!(moves.len(), 16);
+    }
+
+    #[test]
+    fn make_move() {
+        let mut pos = Position::from_fen("x5o/7/7/7/7/7/o5x x 0 1").unwrap();
+        let mv = Move::new(43, 43);
+        pos.make_move(mv);
+        assert_eq!(pos.black, BitBoard(0xc0000000040));
+
+        let mv = Move::new(0, 14);
+        pos.make_move(mv);
+        assert_eq!(pos.white, BitBoard(0x1000000004000));
+
+        let mv = Move::new(42, 28);
+        pos.make_move(mv);
+        assert_eq!(pos.black, BitBoard(0x80010000040));
+
+        let mv = Move::new(21, 21);
+        pos.make_move(mv);
+        assert_eq!(pos.white, BitBoard(0x1000010204000));
     }
 }
