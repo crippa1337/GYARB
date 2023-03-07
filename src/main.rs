@@ -1,6 +1,7 @@
 mod ataxx;
 mod engine;
+mod uai;
 
 fn main() {
-    println!("Hello, world!");
+    uai::handler::main();
 }
