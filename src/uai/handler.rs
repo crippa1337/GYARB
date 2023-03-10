@@ -35,8 +35,6 @@ pub fn main() {
                     continue;
                 }
 
-                println!("FEN: {}", fen);
-
                 match Position::from_fen(&fen) {
                     Ok(_) => state.pos = Position::from_fen(&fen).unwrap(),
                     Err(_) => continue,
