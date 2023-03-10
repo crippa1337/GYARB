@@ -18,7 +18,7 @@ impl Not for Side {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Position {
     pub black: BitBoard,
     pub white: BitBoard,
@@ -44,6 +44,17 @@ impl Position {
         match side {
             Side::Black => (&mut self.black, &mut self.white),
             Side::White => (&mut self.white, &mut self.black),
+        }
+    }
+
+    pub fn default() -> Position {
+        Position {
+            black: BitBoard(0x40000000040),
+            white: BitBoard(0x1000000000001),
+            gaps: BitBoard(0),
+            turn: Side::Black,
+            half_moves: 0,
+            full_moves: 1,
         }
     }
 }
@@ -101,5 +112,17 @@ mod tests {
         let white = p.colored_squares_mut(Side::White);
         *white.0 &= BitBoard(0);
         assert_eq!(*white.0, BitBoard(0));
+    }
+
+    #[test]
+    fn default() {
+        let fen = "x5o/7/7/7/7/7/o5x x 0 1";
+        let p = Position::from_fen(fen).unwrap();
+        let d = Position::default();
+        assert_eq!(d, p);
+
+        assert_eq!(d.perft(1), 16);
+        assert_eq!(d.perft(2), 256);
+        assert_eq!(d.perft(3), 6460);
     }
 }
