@@ -1,7 +1,6 @@
 # Universal Ataxx Interface (Inspired by Universal Chess Interface)
 from subprocess import Popen, PIPE
 from time import sleep
-from game import Game
 
 
 class Engine:
@@ -24,7 +23,6 @@ class UAIUnexpectedCommand(Exception):
 class Handler:
     engine: Engine | None
     process: Popen
-    game: Game
 
     def __init__(self, path):
         self.process = Popen([path], stdin=PIPE, stdout=PIPE, universal_newlines=True)

@@ -1,10 +1,16 @@
+from re import S
 from ursina import Button, Entity, color, Text
+
+from uai import Handler
+from fen import parse_fen
 
 
 class Game:
     selected: Button | None
+    handler: Handler | None
+    move_stack: list[str]
 
-    def __init__(self, board) -> None:
+    def __init__(self, board, handler=None) -> None:
         self.player = Entity(name="X", color=color.orange)
         self.turn_text = t = Text(
             text=f"Turn: {self.player.name}",
@@ -14,6 +20,17 @@ class Game:
         )
         self.board = board
         self.selected = None
+        self.handler = handler
+        self.half_moves = 0
+        self.moves = 1
+
+    def load_fen(self, fen):
+        board, player, half, full = parse_fen(fen)
+        if player == "o":
+            self.swap_turn()
+        self.board = board
+        self.half_moves = half
+        self.moves = full
 
     def move_dup(self, new):
         pos = new.position
@@ -71,6 +88,10 @@ class Game:
         else:
             self.player.name = "X"
             self.player.color = color.orange
+
+            self.moves += 1
+
+        self.half_moves += 1
 
         self.turn_text.text = f"Turn: {self.player.name}"
         self.turn_text.color = self.player.color

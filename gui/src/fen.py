@@ -2,11 +2,13 @@ from ursina import Button, color
 from utils import create_tile
 
 
-def parse_fen(fen: str) -> list[list[Button]]:
+def parse_fen(fen: str) -> tuple[list[list[Button]], str, int, int]:
     board: list[list[None | Button]] = [[None for _ in range(7)] for _ in range(7)]
     x = 0
     y = 6
-    for ch in fen:
+    pos, player, half, full, *_ = fen.split()
+    print(pos)
+    for ch in pos:
         if ch == "x":
             b = create_tile(x, y)
             b.text, b.text_color = "X", color.orange
@@ -29,10 +31,10 @@ def parse_fen(fen: str) -> list[list[Button]]:
         elif ch == "/":
             x = 0
             y -= 1
-    return board
+    return board, player, int(half), int(full)
 
 
-def generate_fen(board: list[list[Button]]) -> str:
+def generate_fen(board: list[list[Button]], player: str, half: int) -> str:
     fen = ""
 
     def get_char(tile) -> str:
@@ -62,4 +64,4 @@ def generate_fen(board: list[list[Button]]) -> str:
             fen += str(i)
         fen += "/"
         y -= 1
-    return fen
+    return f"{fen} {player.lower()} {half} {(int(half) // 2) + 2}"

@@ -12,7 +12,7 @@ def create_tile(x, y, blocked=False) -> Button:
         return b
 
     def on_click(b=b):
-        scene.click_tile(b)
+        scene.game.click_tile(b)
 
     b.on_click = on_click
     return b
