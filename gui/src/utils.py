@@ -1,5 +1,6 @@
 from ursina import Button, color, scene
 
+
 def create_tile(x, y, blocked=False) -> Button:
     clr = color.gray
     if blocked:
@@ -11,7 +12,7 @@ def create_tile(x, y, blocked=False) -> Button:
         return b
 
     def on_click(b=b):
-        b.parent.game.click_tile(b)
+        scene.click_tile(b)
 
     b.on_click = on_click
     return b

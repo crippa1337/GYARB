@@ -1,22 +1,23 @@
 from ursina import Button, color
 from utils import create_tile
 
+
 def parse_fen(fen: str) -> list[list[Button]]:
-    board = [[None for _ in range(7)] for _ in range(7)]
+    board: list[list[None | Button]] = [[None for _ in range(7)] for _ in range(7)]
     x = 0
     y = 6
     for ch in fen:
-        if ch == 'x':
+        if ch == "x":
             b = create_tile(x, y)
-            b.text, b.text_color = 'X', color.orange
+            b.text, b.text_color = "X", color.orange
             board[x][y] = b
             x += 1
-        elif ch == 'o':
+        elif ch == "o":
             b = create_tile(x, y)
-            b.text, b.text_color = 'O', color.azure
+            b.text, b.text_color = "O", color.azure
             board[x][y] = b
             x += 1
-        elif ch == '-':
+        elif ch == "-":
             b = create_tile(x, y, True)
             board[x][y] = b
             x += 1
@@ -25,23 +26,24 @@ def parse_fen(fen: str) -> list[list[Button]]:
                 b = create_tile(x, y)
                 board[x][y] = b
                 x += 1
-        elif ch == '/':
+        elif ch == "/":
             x = 0
             y -= 1
     return board
 
+
 def generate_fen(board: list[list[Button]]) -> str:
     fen = ""
-    def get_char(tile):
-        if tile.text == 'X':
-            return 'x'
-        elif tile.text == 'O':
-            return 'o'
-        else:
-            if tile.color == color.black:
-                return '-'
-            else:
-                return 1
+
+    def get_char(tile) -> str:
+        if tile.text == "X":
+            return "x"
+        elif tile.text == "O":
+            return "o"
+        elif tile.color == color.black:
+            return "-"
+        return ""
+
     x = 0
     y = 6
     for y in range(6, -1, -1):
@@ -49,7 +51,7 @@ def generate_fen(board: list[list[Button]]) -> str:
         for x in range(0, 7):
             tile = board[x][y]
             ch = get_char(tile)
-            if type(ch) is int:
+            if ch == "":
                 i += 1
                 continue
             elif i > 0:
@@ -58,6 +60,6 @@ def generate_fen(board: list[list[Button]]) -> str:
             fen += ch
         if i > 0:
             fen += str(i)
-        fen += '/'
+        fen += "/"
         y -= 1
     return fen
