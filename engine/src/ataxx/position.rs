@@ -57,6 +57,17 @@ impl Position {
             full_moves: 1,
         }
     }
+
+    fn both_sides(&self) -> BitBoard {
+        self.black | self.white
+    }
+
+    pub fn game_over(&self) -> bool {
+        self.black.is_empty()
+            || self.white.is_empty()
+            || self.half_moves >= 100
+            || (self.both_sides().reach() & self.empty_squares()).is_empty()
+    }
 }
 
 impl Display for Position {

@@ -174,6 +174,14 @@ impl BitBoard {
             ) & FULL,
         )
     }
+
+    pub const fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+
+    pub fn reach(&self) -> BitBoard {
+        self.singles() | self.doubles()
+    }
 }
 
 #[cfg(test)]
@@ -281,5 +289,11 @@ mod tests {
     fn from_square() {
         assert_eq!(BitBoard::from_square(0, 0), BitBoard(1));
         assert_eq!(BitBoard::from_square(3, 3), BitBoard(0x1000000));
+    }
+
+    #[test]
+    fn reach() {
+        assert_eq!(BitBoard(0x1).reach(), BitBoard(0x1c386));
+        assert_eq!(BitBoard(0x200).reach(), BitBoard(0x3e7cd9f));
     }
 }

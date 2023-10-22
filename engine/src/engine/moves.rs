@@ -3,6 +3,7 @@ use crate::ataxx::{
     bitboard::BitBoard,
     position::{Position, Side},
 };
+use std::fmt::Display;
 
 const MAX_MOVES: usize = 256;
 
@@ -17,14 +18,52 @@ impl Move {
         Move { from, to }
     }
 
-    pub fn null() -> Move {
-        Move { from: 49, to: 49 }
+    const fn null() -> Move {
+        Move { from: 49, to: 50 }
+    }
+
+    const fn pass() -> Move {
+        Move { from: 50, to: 51 }
+    }
+
+    const fn is_single(&self) -> bool {
+        self.from == self.to
+    }
+}
+
+// Shamelessely stolen from Rustaxx (kz04px)
+impl Display for Move {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        if self.is_single() {
+            write!(
+                f,
+                "{}{}",
+                (97 + (self.from % 7)) as char,
+                (49 + (self.from / 7)) as char
+            )
+        } else if *self == Move::pass() {
+            write!(f, "0000")
+        } else {
+            write!(
+                f,
+                "{}{}{}{}",
+                (97 + (self.from % 7)) as char,
+                (49 + (self.from / 7)) as char,
+                (97 + (self.to % 7)) as char,
+                (49 + (self.to / 7)) as char
+            )
+        }
     }
 }
 
 impl Position {
     pub fn generate_moves(&self) -> StaticVec<Move, MAX_MOVES> {
         let mut moves: StaticVec<Move, MAX_MOVES> = StaticVec::new(Move::null());
+        if self.must_pass() {
+            moves.push(Move::pass());
+            return moves;
+        }
+
         let s2m = self.colored_squares(self.turn);
         let empty = self.empty_squares();
 
@@ -46,6 +85,19 @@ impl Position {
     }
 
     pub fn make_move(&mut self, mv: Move) {
+        debug_assert!(mv != Move::null());
+
+        // Info
+        self.turn = !self.turn;
+        self.half_moves += 1;
+        if self.turn == Side::White {
+            self.full_moves += 1;
+        }
+
+        if mv == Move::pass() {
+            return;
+        }
+
         // Move stone
         let from = BitBoard::from_index(mv.from);
         let to = BitBoard::from_index(mv.to);
@@ -57,13 +109,16 @@ impl Position {
         let captured = to.singles() & *opponent;
         *opponent ^= captured;
         *s2m |= captured;
+    }
 
-        // Info
-        self.turn = !self.turn;
-        self.half_moves += 1;
-        if self.turn == Side::White {
-            self.full_moves += 1;
+    fn must_pass(&self) -> bool {
+        if self.game_over() {
+            return false;
         }
+
+        let s2m = self.colored_squares(self.turn);
+        let empty = self.empty_squares();
+        s2m.reach() & empty == BitBoard(0)
     }
 }
 
