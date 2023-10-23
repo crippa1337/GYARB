@@ -72,7 +72,8 @@ impl Position {
 
 impl Display for Position {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for i in 0..49u8 {
+        let mut i = 42;
+        loop {
             let idx = BitBoard::from_index(i);
 
             if self.black & idx != BitBoard(0) {
@@ -80,14 +81,20 @@ impl Display for Position {
             } else if self.white & idx != BitBoard(0) {
                 write!(f, "o")?;
             } else if self.gaps & idx != BitBoard(0) {
-                write!(f, "#")?;
+                write!(f, " ")?;
             } else {
                 write!(f, "-")?;
             }
 
-            if i % 7 == 6 {
+            if i == 6 {
+                break;
+            } else if i % 7 == 6 {
                 writeln!(f)?;
+                i -= 13;
+                continue;
             }
+
+            i += 1
         }
 
         Ok(())
