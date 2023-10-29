@@ -22,7 +22,7 @@ impl Move {
         Move { from: 49, to: 50 }
     }
 
-    const fn pass() -> Move {
+    pub const fn pass() -> Move {
         Move { from: 50, to: 51 }
     }
 
@@ -86,15 +86,8 @@ impl Position {
 
     pub fn make_move(&mut self, mv: Move) {
         debug_assert!(mv != Move::null());
-
-        // Info
-        self.turn = !self.turn;
-        self.half_moves += 1;
-        if self.turn == Side::White {
-            self.full_moves += 1;
-        }
-
         if mv == Move::pass() {
+            self.update_turn_info();
             return;
         }
 
@@ -109,6 +102,16 @@ impl Position {
         let captured = to.singles() & *opponent;
         *opponent ^= captured;
         *s2m |= captured;
+
+        self.update_turn_info();
+    }
+
+    fn update_turn_info(&mut self) {
+        self.turn = !self.turn;
+        self.half_moves += 1;
+        if self.turn == Side::White {
+            self.full_moves += 1;
+        }
     }
 
     fn must_pass(&self) -> bool {

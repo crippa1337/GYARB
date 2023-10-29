@@ -4,12 +4,19 @@ impl Position {
     pub fn perft(&self, depth: i16) -> u64 {
         if depth == 0 {
             return 1;
+        } else if self.game_over() {
+            return 0;
         } else if depth == 1 {
             let mut num_moves = 0;
             let s2m = self.colored_squares(self.turn);
             let empty = self.empty_squares();
 
             num_moves += (s2m.singles() & empty).popcnt();
+
+            // pass
+            if num_moves == 0 {
+                return 1;
+            }
 
             for sq in s2m {
                 let doubles = BitBoard::from_index(sq).doubles() & empty;
@@ -102,7 +109,7 @@ mod tests {
         for (fen, perfts) in fens.iter() {
             let pos = Position::from_fen(fen).unwrap();
             for (depth, nodes) in perfts.iter().enumerate() {
-                assert_eq!(pos.perft(depth as i16), *nodes);
+                assert_eq!(pos.perft(depth as i16), *nodes, "{}", fen);
             }
         }
     }

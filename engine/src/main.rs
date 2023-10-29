@@ -6,9 +6,15 @@ mod uai;
 
 fn main() {
     //uai::handler::main();
-    let mut pos = crate::ataxx::position::Position::default();
-    println! {"{}", pos};
-    let mv = Move::new(36, 36);
-    pos.make_move(mv);
-    println! {"{}", pos};
+    //let mut pos = crate::ataxx::position::Position::default();
+    //pos.split_perft(2);
+    let mut pos =
+        crate::ataxx::position::Position::from_fen("xxxxxxx/ooooooo/ooooooo/7/7/7/7 x 0 1")
+            .unwrap();
+    println!("{}", pos);
+    pos.split_perft(3);
+
+    pos.make_move(Move::pass());
+    println!("{}", pos);
+    pos.split_perft(3);
 }

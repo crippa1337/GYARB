@@ -51,6 +51,7 @@ impl Node {
             None => return self.visits as f32,
         }
     }
+
     fn select_child(self) -> Node {
         if self.children.len() == 0 {
             self.expand();
