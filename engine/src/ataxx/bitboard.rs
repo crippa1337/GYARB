@@ -125,26 +125,6 @@ impl BitBoard {
         BitBoard(FULL)
     }
 
-    #[allow(dead_code)]
-    pub fn north(&self) -> BitBoard {
-        BitBoard((self.0 << 7) & FULL)
-    }
-
-    #[allow(dead_code)]
-    pub fn south(&self) -> BitBoard {
-        BitBoard(self.0 >> 7)
-    }
-
-    #[allow(dead_code)]
-    pub fn east(&self) -> BitBoard {
-        BitBoard((self.0 << 1) & (!FILE_A))
-    }
-
-    #[allow(dead_code)]
-    pub fn west(&self) -> BitBoard {
-        BitBoard((self.0 >> 1) & (!FILE_G))
-    }
-
     pub fn singles(&self) -> BitBoard {
         BitBoard(
             // U             // D
@@ -174,6 +154,14 @@ impl BitBoard {
             ) & FULL,
         )
     }
+
+    pub const fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+
+    pub fn reach(&self) -> BitBoard {
+        self.singles() | self.doubles()
+    }
 }
 
 #[cfg(test)]
@@ -201,48 +189,6 @@ mod tests {
         assert_eq!(!BitBoard(0), BitBoard(0x1ffffffffffff));
         assert_eq!(!BitBoard(0x1ffffffffffff), BitBoard(0));
         assert_eq!(!BitBoard(FILE_A), BitBoard(FULL) ^ BitBoard(FILE_A));
-    }
-
-    #[test]
-    fn north() {
-        assert_eq!(BitBoard(0x20000000).north(), BitBoard(0x1000000000));
-        assert_eq!(BitBoard(0x10000000000).north(), BitBoard(0x800000000000));
-        assert_eq!(BitBoard(0x800000000000).north(), BitBoard(0));
-        assert_eq!(BitBoard(0x0).north(), BitBoard(0x0));
-        assert_eq!(BitBoard(0x1).north(), BitBoard(0x80));
-        assert_eq!(BitBoard(0x7f).north(), BitBoard(0x3f80));
-        assert_eq!(BitBoard(0x3f800000000).north(), BitBoard(0x1fc0000000000));
-        assert_eq!(BitBoard(0x1fc0000000000).north(), BitBoard(0x0));
-    }
-
-    #[test]
-    fn south() {
-        assert_eq!(BitBoard(1).south(), BitBoard(0));
-        assert_eq!(BitBoard(0x200).south(), BitBoard(4));
-        assert_eq!(BitBoard(0x2000000).south(), BitBoard(0x40000));
-        assert_eq!(BitBoard(0x0).south(), BitBoard(0x0));
-        assert_eq!(BitBoard(0x80).south(), BitBoard(0x1));
-        assert_eq!(BitBoard(0x1fc000).south(), BitBoard(0x3f80));
-        assert_eq!(BitBoard(0x3f80).south(), BitBoard(0x7f));
-        assert_eq!(BitBoard(0x7f).south(), BitBoard(0x0));
-    }
-
-    #[test]
-    fn east() {
-        assert_eq!(BitBoard(1).east(), BitBoard(2));
-        assert_eq!(BitBoard(0x8000).east(), BitBoard(0x10000));
-        assert_eq!(BitBoard(0x40).east(), BitBoard(0));
-        assert_eq!(BitBoard(0x0).east(), BitBoard(0x0));
-        assert_eq!(BitBoard(0x1).east(), BitBoard(0x2));
-    }
-
-    #[test]
-    fn west() {
-        assert_eq!(BitBoard(1).west(), BitBoard(0));
-        assert_eq!(BitBoard(0x400000).west(), BitBoard(0x200000));
-        assert_eq!(BitBoard(0x1000000).west(), BitBoard(0x800000));
-        assert_eq!(BitBoard(0x0).west(), BitBoard(0x0));
-        assert_eq!(BitBoard(0x1).west(), BitBoard(0x0));
     }
 
     #[test]
@@ -281,5 +227,11 @@ mod tests {
     fn from_square() {
         assert_eq!(BitBoard::from_square(0, 0), BitBoard(1));
         assert_eq!(BitBoard::from_square(3, 3), BitBoard(0x1000000));
+    }
+
+    #[test]
+    fn reach() {
+        assert_eq!(BitBoard(0x1).reach(), BitBoard(0x1c386));
+        assert_eq!(BitBoard(0x200).reach(), BitBoard(0x3e7cd9f));
     }
 }

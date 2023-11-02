@@ -57,11 +57,23 @@ impl Position {
             full_moves: 1,
         }
     }
+
+    fn both_sides(&self) -> BitBoard {
+        self.black | self.white
+    }
+
+    pub fn game_over(&self) -> bool {
+        self.black.is_empty()
+            || self.white.is_empty()
+            || self.half_moves >= 100
+            || (self.both_sides().reach() & self.empty_squares()).is_empty()
+    }
 }
 
 impl Display for Position {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for i in 0..49u8 {
+        let mut i = 42;
+        loop {
             let idx = BitBoard::from_index(i);
 
             if self.black & idx != BitBoard(0) {
@@ -69,14 +81,20 @@ impl Display for Position {
             } else if self.white & idx != BitBoard(0) {
                 write!(f, "o")?;
             } else if self.gaps & idx != BitBoard(0) {
-                write!(f, "#")?;
+                write!(f, " ")?;
             } else {
                 write!(f, "-")?;
             }
 
-            if i % 7 == 6 {
+            if i == 6 {
+                break;
+            } else if i % 7 == 6 {
                 writeln!(f)?;
+                i -= 13;
+                continue;
             }
+
+            i += 1
         }
 
         Ok(())
@@ -124,5 +142,47 @@ mod tests {
         assert_eq!(d.perft(1), 16);
         assert_eq!(d.perft(2), 256);
         assert_eq!(d.perft(3), 6460);
+    }
+
+    #[test]
+    fn gameover_true() {
+        let tests: [&str; 10] = [
+            "7/7/7/7/7/7/7 x 0 1",
+            "7/7/7/7/7/7/7 o 0 1",
+            "7/7/7/7/7/7/x6 x 0 1",
+            "7/7/7/7/7/7/x6 o 0 1",
+            "7/7/7/7/7/7/o6 x 0 1",
+            "7/7/7/7/7/7/o6 o 0 1",
+            "x5o/7/7/7/7/7/o5x x 100 1",
+            "x5o/7/7/7/7/7/o5x o 100 1",
+            "7/7/7/7/-------/-------/ooooxxx x 0 1",
+            "7/7/7/7/-------/-------/ooooxxx o 0 1",
+        ];
+
+        for fen in tests {
+            let pos = Position::from_fen(fen).unwrap();
+            assert!(pos.game_over());
+        }
+    }
+
+    #[test]
+    fn gameover_false() {
+        let tests: [&str; 10] = [
+            "x5o/7/7/7/7/7/o5x x 0 1",
+            "x5o/7/7/7/7/7/o5x o 0 1",
+            "x5o/7/2-1-2/7/2-1-2/7/o5x x 0 1",
+            "x5o/7/2-1-2/7/2-1-2/7/o5x o 0 1",
+            "x5o/7/2-1-2/7/2-1-2/7/o5x x 20 40",
+            "x5o/7/2-1-2/7/2-1-2/7/o5x o 20 40",
+            "7/7/7/7/ooooooo/ooooooo/xxxxxxx x 0 1",
+            "7/7/7/7/ooooooo/ooooooo/xxxxxxx o 0 1",
+            "7/7/7/7/xxxxxxx/xxxxxxx/ooooooo x 0 1",
+            "7/7/7/7/xxxxxxx/xxxxxxx/ooooooo o 0 1",
+        ];
+
+        for fen in tests {
+            let pos = Position::from_fen(fen).unwrap();
+            assert!(!pos.game_over());
+        }
     }
 }
