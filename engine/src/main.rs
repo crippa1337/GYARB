@@ -12,9 +12,10 @@ fn main() {
         crate::ataxx::position::Position::from_fen("xxxxxxx/ooooooo/ooooooo/7/7/7/7 x 0 1")
             .unwrap();
     println!("{}", pos);
-    pos.split_perft(3);
 
     pos.make_move(Move::pass());
     println!("{}", pos);
-    pos.split_perft(3);
+
+    pos.make_move(Move { from: 21, to: 21 });
+    println!("{}", pos);
 }

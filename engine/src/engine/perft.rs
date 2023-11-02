@@ -13,14 +13,14 @@ impl Position {
 
             num_moves += (s2m.singles() & empty).popcnt();
 
-            // pass
-            if num_moves == 0 {
-                return 1;
-            }
-
             for sq in s2m {
                 let doubles = BitBoard::from_index(sq).doubles() & empty;
                 num_moves += doubles.popcnt();
+            }
+
+            // pass
+            if num_moves == 0 {
+                return 1;
             }
 
             return num_moves as u64;
