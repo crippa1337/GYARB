@@ -47,6 +47,7 @@ impl Position {
         }
     }
 
+    #[allow(dead_code)]
     pub fn default() -> Position {
         Position {
             black: BitBoard(0x40000000040),

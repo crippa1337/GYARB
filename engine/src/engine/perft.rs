@@ -39,6 +39,7 @@ impl Position {
         nodes
     }
 
+    #[allow(dead_code)]
     pub fn split_perft(&self, depth: i16) {
         let mut nodes = 0;
         let start = std::time::Instant::now();

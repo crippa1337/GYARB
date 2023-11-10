@@ -2,7 +2,7 @@ use crate::ataxx::position::Position;
 
 use super::state::State;
 
-pub fn main() {
+pub fn main_loop() {
     let mut state = State::default();
 
     loop {

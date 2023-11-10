@@ -1,7 +1,9 @@
+use crate::ataxx::position::Position;
 use std::f32::ln;
 
 const INFINITY: f32 = 1_000_000;
 const C: f32 = 1.41421356237; // 2 / sqrt(2)
+const NODEPOOL_MAX_MEM: usize = 2 * 1024 * 1024 * 1024; // 2GB
 
 struct Node {
     idx: usize,
@@ -18,7 +20,9 @@ struct Tree {
 
 impl Tree {
     fn new(self) -> Self {
-        let mut v = Vec::new();
+        const NODEPOOL_SIZE: usize = NODEPOOL_MAX_MEM / std::mem::size_of::<Node>();
+        let mut v = Vec::with_capacity(NODEPOOL_SIZE);
+
         let root = Node {
             idx: 0,
             parent: None,
@@ -66,9 +70,9 @@ impl Node {
     }
 
     fn rollout(self) -> i32 {
-        let mut position = self.position.clone();
+        let mut position: Position = self.position.clone();
 
-        while !position.is_game_over() {
+        while !position.game_over() {
             let moves = position.legal_moves();
             let random_move = moves[fastrand::usize(..moves.len())];
             position.make_move(random_move);
