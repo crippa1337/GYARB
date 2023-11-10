@@ -16,6 +16,7 @@ impl<T: Copy, const N: usize> StaticVec<T, N> {
         self.len += 1;
     }
 
+    #[allow(dead_code)]
     pub fn len(&self) -> usize {
         self.len
     }

@@ -9,6 +9,7 @@ struct Node {
     children: Vec<usize>,
     visits: usize,
     total_value: f32,
+    position: Position,
 }
 
 struct Tree {
@@ -51,6 +52,7 @@ impl Node {
             None => return self.visits as f32,
         }
     }
+
     fn select_child(self) -> Node {
         if self.children.len() == 0 {
             self.expand();
@@ -64,7 +66,15 @@ impl Node {
     }
 
     fn rollout(self) -> i32 {
-        panic!("Not implemented")
+        let mut position = self.position.clone();
+
+        while !position.is_game_over() {
+            let moves = position.legal_moves();
+            let random_move = moves[fastrand::usize(..moves.len())];
+            position.make_move(random_move);
+        }
+
+        return position.winner();
     }
 
     fn expand(self) {

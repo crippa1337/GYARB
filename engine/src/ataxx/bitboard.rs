@@ -121,6 +121,7 @@ impl BitBoard {
         self.0.count_ones()
     }
 
+    #[allow(dead_code)]
     pub const fn full() -> BitBoard {
         BitBoard(FULL)
     }

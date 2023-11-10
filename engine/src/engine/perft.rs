@@ -1,6 +1,7 @@
 use crate::ataxx::{bitboard::BitBoard, position::Position};
 
 impl Position {
+    #[allow(dead_code)]
     pub fn perft(&self, depth: i16) -> u64 {
         if depth == 0 {
             return 1;
