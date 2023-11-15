@@ -7,6 +7,12 @@ pub enum Side {
     White,
 }
 
+pub enum Outcome {
+    BlackWin,
+    WhiteWin,
+    Draw,
+}
+
 impl Not for Side {
     type Output = Side;
 
@@ -68,6 +74,29 @@ impl Position {
             || self.white.is_empty()
             || self.half_moves >= 100
             || (self.both_sides().reach() & self.empty_squares()).is_empty()
+    }
+
+    pub fn winner(&self) -> Option<Outcome> {
+        if !self.game_over() {
+            return None;
+        }
+
+        if self.black.is_empty() {
+            return Some(Outcome::WhiteWin);
+        } else if self.white.is_empty() {
+            return Some(Outcome::BlackWin);
+        }
+
+        let black_score = self.black.popcnt();
+        let white_score = self.white.popcnt();
+
+        if black_score > white_score {
+            return Some(Outcome::BlackWin);
+        } else if white_score > black_score {
+            return Some(Outcome::WhiteWin);
+        } else {
+            return Some(Outcome::Draw);
+        }
     }
 }
 

@@ -1,4 +1,5 @@
 use crate::ataxx::position::Position;
+use std::time::Instant;
 
 const INFINITY: f32 = 1_000_000.0;
 const C: f32 = 1.41421356237; // 2 / sqrt(2)
@@ -34,6 +35,31 @@ impl Tree {
         v.push(root);
         Tree { nodes: v }
     }
+
+    fn select_expand_simulate(self) {
+        let root = self.nodes[0];
+        let time = Instant::now();
+
+        // Each move is given 5 seconds
+        while time.elapsed().as_millis() > 5000 {
+            let mut node = root;
+
+            // Find best terminal node
+            while node.children.len() > 0 {
+                let child_idx = node.select_child(&mut self);
+                node = self.nodes[child_idx];
+            }
+
+            let value = node.rollout();
+
+            // Backpropagation
+            while node.parent.is_some() {
+                node.total_value += value as f32;
+                node.visits += 1;
+                node = tree.nodes[node.parent.unwrap()];
+            }
+        }
+    }
 }
 
 impl Node {
@@ -43,26 +69,17 @@ impl Node {
         }
 
         let exploitation = self.total_value / self.visits as f32;
-        let exploration = C * ((2.0 * self.total_visits(tree).ln()) / self.visits as f32).sqrt();
+        let exploration = C
+            * ((2.0 * (tree.nodes[self.parent.unwrap()].visits as f32).ln()) / self.visits as f32)
+                .sqrt();
         let v = exploitation + exploration;
 
         v
     }
 
-    fn total_visits(self, tree: Tree) -> f32 {
-        // Recursively travel up to the root and return it's visits
-        match self.parent {
-            Some(parent_idx) => {
-                let parent = tree.nodes[parent_idx];
-                return parent.total_visits(tree);
-            }
-            None => return self.visits as f32,
-        }
-    }
-
-    fn select_child(self, tree: Tree) -> Node {
+    fn select_child(&mut self, tree: &mut Tree) -> usize {
         if self.children.len() == 0 {
-            self.expand();
+            self.expand(tree);
             return self.select_child(tree);
         }
 
@@ -71,7 +88,7 @@ impl Node {
 
         for child_idx in self.children {
             let child = tree.nodes[child_idx];
-            let child_value = child.ucb1(tree);
+            let child_value = child.ucb1(*tree);
 
             if child_value > best_value {
                 best_value = child_value;
@@ -79,7 +96,7 @@ impl Node {
             }
         }
 
-        return tree.nodes[best_child.unwrap()];
+        best_child.unwrap()
     }
 
     fn rollout(self) -> i32 {
@@ -91,10 +108,32 @@ impl Node {
             position.make_move(random_move);
         }
 
-        // return winner
+        match self.winner {
+            Some(Outcome::BlackWin) => return 1,
+            Some(Outcome::WhiteWin) => return -1,
+            Some(Outcome::Draw) => return 0,
+            None => panic!("Game not over"),
+        }
     }
 
-    fn expand(self) {
-        panic!("Not implemented")
+    fn expand(&mut self, tree: &mut Tree) {
+        let moves = self.position.generate_moves();
+
+        for m in moves.as_slice() {
+            let mut new_position = self.position.clone();
+            new_position.make_move(*m);
+
+            let new_node = Node {
+                idx: tree.nodes.len(),
+                parent: Some(self.idx),
+                children: Vec::new(),
+                visits: 0,
+                total_value: 0.0,
+                position: new_position,
+            };
+
+            tree.nodes.push(new_node);
+            self.children.push(new_node.idx);
+        }
     }
 }
