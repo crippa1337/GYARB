@@ -1,5 +1,5 @@
 pub struct StaticVec<T: Copy, const N: usize> {
-    data: [T; N],
+    pub data: [T; N],
     len: usize,
 }
 
