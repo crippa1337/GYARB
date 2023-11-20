@@ -55,13 +55,16 @@ impl Tree {
 
             // Find best terminal node
             loop {
-                let node = self.nodes[node_idx].clone();
+                let mut node = self.nodes[node_idx].clone();
                 let len = (*node.children).borrow().len();
+
+                if node.position.game_over() {
+                    break;
+                }
 
                 node_idx = if let Some(idx) = node.select_child(self) {
                     idx
                 } else {
-                    let mut node = self.nodes[node_idx].clone();
                     node.expand(self);
                     let len = (*node.children).borrow().len();
                     let children = (*node.children).borrow_mut();
