@@ -1,14 +1,15 @@
 use crate::ataxx::position::{Outcome, Position, Side};
-use std::time::Instant;
+use std::{time::Instant, cell::{Cell, RefCell}, rc::Rc, f32::consts::SQRT_2};
 
 const INFINITY: f32 = 1_000_000.0;
-const C: f32 = 1.41421356237; // 2 / sqrt(2)
+const C: f32 = SQRT_2; // sqrt(2)
 const NODEPOOL_MAX_MEM: usize = 2 * 1024 * 1024 * 1024; // 2GB
 
+#[derive(Clone, Debug)]
 struct Node {
     idx: usize,
     parent: Option<usize>,
-    children: Vec<usize>,
+    children: Rc<RefCell<Vec<usize>>>,
     visits: usize,
     total_value: f32,
     position: Position,
@@ -19,14 +20,14 @@ struct Tree {
 }
 
 impl Tree {
-    fn new(self, position: Position) -> Self {
+    fn new(position: Position) -> Self {
         const NODEPOOL_SIZE: usize = NODEPOOL_MAX_MEM / std::mem::size_of::<Node>();
         let mut v = Vec::with_capacity(NODEPOOL_SIZE);
 
         let root = Node {
             idx: 0,
             parent: None,
-            children: Vec::new(),
+            children: Rc::new(RefCell::new(Vec::new())),
             visits: 0,
             total_value: 0.0,
             position,
@@ -37,34 +38,52 @@ impl Tree {
     }
 
     fn select_expand_simulate(&mut self) {
-        let root = self.nodes[0];
+        let root_idx = 0;
         let time = Instant::now();
+        println!("Starting MCTS");
 
         // Each move is given 5 seconds
-        while time.elapsed().as_millis() > 5000 {
-            let mut node = root;
+        println!("Time elapsed: {}ms", time.elapsed().as_millis());
+        while time.elapsed().as_millis() < 5000 {
+            let mut node_idx = root_idx;
 
             // Find best terminal node
-            while node.children.len() > 0 {
-                let child_idx = node.select_child(self);
-                node = self.nodes[child_idx];
+            loop {
+                let node = &self.nodes[node_idx];
+                let len = (*node.children).borrow().len();
+                if len == 0 {
+                    break;
+                }
+
+
+                node_idx = if let Some(idx) = node.select_child(self) {
+                    println!("No children");
+                    idx
+                } else {
+                    let mut node = self.nodes[node_idx].clone();
+                    node.expand(self);
+                    let len = (*node.children).borrow().len();
+                    let children = (*node.children).borrow_mut();
+                    children[fastrand::usize(..len)]
+                };
             }
 
+            let mut node = self.nodes[node_idx].clone();
             let mut value = node.rollout();
 
-            // Backpropagation
             while node.parent.is_some() {
                 node.visits += 1;
                 node.total_value += value as f32;
                 value = -value;
-                node = self.nodes[node.parent.unwrap()];
+                let idx = node.parent.unwrap();
+                node = self.nodes[idx].clone();
             }
         }
     }
 }
 
 impl Node {
-    fn ucb1(self, tree: Tree) -> f32 {
+    fn ucb1(&self, tree: &Tree) -> f32 {
         if self.visits == 0 {
             return INFINITY;
         }
@@ -78,30 +97,31 @@ impl Node {
         v
     }
 
-    fn select_child(&mut self, tree: &mut Tree) -> usize {
-        if self.children.len() == 0 {
-            self.expand(tree);
-            return self.children[fastrand::usize(..self.children.len())];
+    fn select_child(&self, tree: &Tree) -> Option<usize> {
+        if self.children.borrow().len() == 0 {
+            return None;
         }
 
         let mut best_value = 0.0;
         let mut best_child = None;
 
-        for child_idx in self.children {
-            let child = tree.nodes[child_idx];
-            let child_value = child.ucb1(*tree);
+        let children = (*self.children).borrow();
 
-            if child_value > best_value {
-                best_value = child_value;
-                best_child = Some(child_idx);
-            }
+        for child_idx in children.iter() {
+          let child = &tree.nodes[*child_idx];
+          let child_value = child.ucb1(tree);
+
+          if child_value > best_value {
+              best_value = child_value;
+              best_child = Some(child_idx);
+          }
         }
 
-        best_child.unwrap()
+        best_child.copied()
     }
 
-    fn rollout(self) -> i32 {
-        let mut position: Position = self.position.clone();
+    fn rollout(&self) -> i32 {
+        let mut position: Position = self.position;
         let s2m = position.turn;
 
         while !position.game_over() {
@@ -128,20 +148,34 @@ impl Node {
         let moves = self.position.generate_moves();
 
         for m in moves.as_slice() {
-            let mut new_position = self.position.clone();
+            let mut new_position = self.position;
             new_position.make_move(*m);
 
             let new_node = Node {
                 idx: tree.nodes.len(),
                 parent: Some(self.idx),
-                children: Vec::new(),
+                children: Rc::new(RefCell::new(Vec::new())),
                 visits: 0,
                 total_value: 0.0,
                 position: new_position,
             };
 
+            (*self.children).borrow_mut().push(new_node.idx);
             tree.nodes.push(new_node);
-            self.children.push(new_node.idx);
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn test_1() {
+        use super::*;
+        let mut tree = Tree::new(Position::default());
+        tree.select_expand_simulate();
+        assert_eq!(tree.nodes.len(), 1);
+        println!("{:?}", tree.nodes[0]);
+    }
+
 }
