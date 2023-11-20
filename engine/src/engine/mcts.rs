@@ -1,5 +1,10 @@
 use crate::ataxx::position::{Outcome, Position, Side};
-use std::{time::Instant, cell::{Cell, RefCell}, rc::Rc, f32::consts::SQRT_2};
+use std::{
+    cell::{Cell, RefCell},
+    f32::consts::SQRT_2,
+    rc::Rc,
+    time::Instant,
+};
 
 const INFINITY: f32 = 1_000_000.0;
 const C: f32 = SQRT_2; // sqrt(2)
@@ -55,7 +60,6 @@ impl Tree {
                     break;
                 }
 
-
                 node_idx = if let Some(idx) = node.select_child(self) {
                     println!("No children");
                     idx
@@ -108,13 +112,13 @@ impl Node {
         let children = (*self.children).borrow();
 
         for child_idx in children.iter() {
-          let child = &tree.nodes[*child_idx];
-          let child_value = child.ucb1(tree);
+            let child = &tree.nodes[*child_idx];
+            let child_value = child.ucb1(tree);
 
-          if child_value > best_value {
-              best_value = child_value;
-              best_child = Some(child_idx);
-          }
+            if child_value > best_value {
+                best_value = child_value;
+                best_child = Some(child_idx);
+            }
         }
 
         best_child.copied()
@@ -177,5 +181,4 @@ mod tests {
         assert_eq!(tree.nodes.len(), 1);
         println!("{:?}", tree.nodes[0]);
     }
-
 }
