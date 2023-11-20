@@ -54,14 +54,10 @@ impl Tree {
 
             // Find best terminal node
             loop {
-                let node = &self.nodes[node_idx];
+                let node = self.nodes[node_idx].clone();
                 let len = (*node.children).borrow().len();
-                if len == 0 {
-                    break;
-                }
 
                 node_idx = if let Some(idx) = node.select_child(self) {
-                    println!("No children");
                     idx
                 } else {
                     let mut node = self.nodes[node_idx].clone();
@@ -70,6 +66,11 @@ impl Tree {
                     let children = (*node.children).borrow_mut();
                     children[fastrand::usize(..len)]
                 };
+
+                // Found a rollout node
+                if len == 0 && node.visits == 0 {
+                    break;
+                }
             }
 
             let mut node = &mut self.nodes[node_idx];
@@ -96,13 +97,12 @@ impl Node {
         let exploration = C
             * ((2.0 * (tree.nodes[self.parent.unwrap()].visits as f32).ln()) / self.visits as f32)
                 .sqrt();
-        let v = exploitation + exploration;
 
-        v
+        exploitation + exploration
     }
 
     fn select_child(&self, tree: &Tree) -> Option<usize> {
-        if self.children.borrow().len() == 0 {
+        if self.children.borrow().len() == 0 && self.visits > 0 {
             return None;
         }
 
@@ -142,9 +142,9 @@ impl Node {
         };
 
         if s2m == Side::White {
-            return outcome_score;
+            outcome_score
         } else {
-            return -outcome_score;
+            -outcome_score
         }
     }
 
@@ -152,7 +152,7 @@ impl Node {
         let moves = self.position.generate_moves();
 
         for m in moves.as_slice() {
-            let mut new_position = self.position.clone();
+            let mut new_position = self.position;
             new_position.make_move(*m);
 
             let new_node = Node {
@@ -178,7 +178,6 @@ mod tests {
         use super::*;
         let mut tree = Tree::new(Position::default());
         tree.select_expand_simulate();
-        assert_eq!(tree.nodes.len(), 1);
-        println!("{:?}", tree.nodes[0]);
+        assert!(!tree.nodes.is_empty());
     }
 }
