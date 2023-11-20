@@ -68,7 +68,7 @@ impl Tree {
                 };
             }
 
-            let mut node = self.nodes[node_idx].clone();
+            let mut node = &mut self.nodes[node_idx];
             let mut value = node.rollout();
 
             while node.parent.is_some() {
@@ -76,7 +76,7 @@ impl Tree {
                 node.total_value += value as f32;
                 value = -value;
                 let idx = node.parent.unwrap();
-                node = self.nodes[idx].clone();
+                node = &mut self.nodes[idx];
             }
         }
     }
