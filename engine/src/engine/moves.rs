@@ -18,7 +18,7 @@ impl Move {
         Move { from, to }
     }
 
-    const fn null() -> Move {
+    pub const fn null() -> Move {
         Move { from: 49, to: 50 }
     }
 

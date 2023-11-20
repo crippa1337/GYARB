@@ -1,3 +1,4 @@
+use super::moves::Move;
 use crate::ataxx::position::{Outcome, Position, Side};
 use std::{
     cell::{Cell, RefCell},
@@ -18,14 +19,15 @@ struct Node {
     visits: usize,
     total_value: f32,
     position: Position,
+    from_action: Move,
 }
 
-struct Tree {
+pub struct Tree {
     nodes: Vec<Node>,
 }
 
 impl Tree {
-    fn new(position: Position) -> Self {
+    pub fn new(position: Position) -> Self {
         const NODEPOOL_SIZE: usize = NODEPOOL_MAX_MEM / std::mem::size_of::<Node>();
         let mut v = Vec::with_capacity(NODEPOOL_SIZE);
 
@@ -36,19 +38,18 @@ impl Tree {
             visits: 0,
             total_value: 0.0,
             position,
+            from_action: Move::null(),
         };
 
         v.push(root);
         Tree { nodes: v }
     }
 
-    fn select_expand_simulate(&mut self) {
+    pub fn select_expand_simulate(&mut self) {
         let root_idx = 0;
         let time = Instant::now();
-        println!("Starting MCTS");
 
         // Each move is given 5 seconds
-        println!("Time elapsed: {}ms", time.elapsed().as_millis());
         while time.elapsed().as_millis() < 5000 {
             let mut node_idx = root_idx;
 
@@ -84,6 +85,28 @@ impl Tree {
                 node = &mut self.nodes[idx];
             }
         }
+    }
+
+    pub fn best_move(&self) -> Move {
+        assert!(!self.nodes.is_empty());
+        let root = &self.nodes[0];
+        let mut best_value = 0.0;
+        let mut best_move = Move::null();
+
+        let children = (*root.children).borrow();
+
+        for child_idx in children.iter() {
+            let child = &self.nodes[*child_idx];
+            let avg_val = child.total_value / child.visits as f32;
+
+            if avg_val > best_value {
+                best_value = avg_val;
+                best_move = child.from_action;
+            }
+        }
+
+        assert_ne!(best_move, Move::null());
+        best_move
     }
 }
 
@@ -162,6 +185,7 @@ impl Node {
                 visits: 0,
                 total_value: 0.0,
                 position: new_position,
+                from_action: *m,
             };
 
             (*self.children).borrow_mut().push(new_node.idx);
