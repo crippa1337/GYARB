@@ -148,7 +148,7 @@ impl Node {
         let moves = self.position.generate_moves();
 
         for m in moves.as_slice() {
-            let mut new_position = self.position;
+            let mut new_position = self.position.clone();
             new_position.make_move(*m);
 
             let new_node = Node {
