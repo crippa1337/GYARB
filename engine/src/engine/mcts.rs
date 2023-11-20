@@ -1,4 +1,4 @@
-use crate::ataxx::position::Position;
+use crate::ataxx::position::{Outcome, Position, Side};
 use std::time::Instant;
 
 const INFINITY: f32 = 1_000_000.0;
@@ -36,7 +36,7 @@ impl Tree {
         Tree { nodes: v }
     }
 
-    fn select_expand_simulate(self) {
+    fn select_expand_simulate(&mut self) {
         let root = self.nodes[0];
         let time = Instant::now();
 
@@ -46,17 +46,18 @@ impl Tree {
 
             // Find best terminal node
             while node.children.len() > 0 {
-                let child_idx = node.select_child(&mut self);
+                let child_idx = node.select_child(self);
                 node = self.nodes[child_idx];
             }
 
-            let value = node.rollout();
+            let mut value = node.rollout();
 
             // Backpropagation
             while node.parent.is_some() {
-                node.total_value += value as f32;
                 node.visits += 1;
-                node = tree.nodes[node.parent.unwrap()];
+                node.total_value += value as f32;
+                value = -value;
+                node = self.nodes[node.parent.unwrap()];
             }
         }
     }
@@ -80,7 +81,7 @@ impl Node {
     fn select_child(&mut self, tree: &mut Tree) -> usize {
         if self.children.len() == 0 {
             self.expand(tree);
-            return self.select_child(tree);
+            return self.children[fastrand::usize(..self.children.len())];
         }
 
         let mut best_value = 0.0;
@@ -101,6 +102,7 @@ impl Node {
 
     fn rollout(self) -> i32 {
         let mut position: Position = self.position.clone();
+        let s2m = position.turn;
 
         while !position.game_over() {
             let moves = position.generate_moves();
@@ -108,11 +110,17 @@ impl Node {
             position.make_move(random_move);
         }
 
-        match self.winner {
-            Some(Outcome::BlackWin) => return 1,
-            Some(Outcome::WhiteWin) => return -1,
-            Some(Outcome::Draw) => return 0,
+        let outcome_score = match position.winner() {
+            Some(Outcome::WhiteWin) => 1,
+            Some(Outcome::BlackWin) => -1,
+            Some(Outcome::Draw) => 0,
             None => panic!("Game not over"),
+        };
+
+        if s2m == Side::White {
+            return outcome_score;
+        } else {
+            return -outcome_score;
         }
     }
 
