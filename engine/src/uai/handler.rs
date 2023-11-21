@@ -1,9 +1,8 @@
 use crate::ataxx::position::Position;
-
-use super::state::State;
+use crate::engine::mcts::Tree;
 
 pub fn main_loop() {
-    let mut state = State::default();
+    let mut pos = Position::default();
 
     loop {
         let mut input = String::new();
@@ -13,7 +12,7 @@ pub fn main_loop() {
         match token[0] {
             "uai" => {
                 println!("id name Kurt");
-                println!("id author Crippa");
+                println!("id author Cristopher Torgrip");
                 println!("uaiok");
             }
 
@@ -36,12 +35,22 @@ pub fn main_loop() {
                 }
 
                 match Position::from_fen(&fen) {
-                    Ok(_) => state.pos = Position::from_fen(&fen).unwrap(),
-                    Err(_) => continue,
+                    Ok(_) => pos = Position::from_fen(&fen).unwrap(),
+                    Err(_) => {
+                        println!("Failed to read fen");
+                        continue;
+                    }
                 }
             }
 
-            _ => {}
+            "go" => {
+                let mut tree = Tree::new(pos);
+                tree.select_expand_simulate();
+                let mv = tree.best_move();
+                println!("bestmove {}", mv);
+            }
+
+            _ => continue,
         }
     }
 }
