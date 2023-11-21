@@ -1,11 +1,6 @@
 use super::moves::Move;
 use crate::ataxx::position::{Outcome, Position, Side};
-use std::{
-    cell::{Cell, RefCell},
-    f32::consts::SQRT_2,
-    rc::Rc,
-    time::Instant,
-};
+use std::{cell::RefCell, f32::consts::SQRT_2, rc::Rc, time::Instant};
 
 const INFINITY: f32 = 1_000_000.0;
 const C: f32 = SQRT_2; // sqrt(2)

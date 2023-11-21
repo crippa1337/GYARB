@@ -1,5 +1,5 @@
 use super::bitboard::BitBoard;
-use std::{fmt::Display, ops::Not};
+use std::{cmp::Ordering, fmt::Display, ops::Not};
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Side {
@@ -90,12 +90,10 @@ impl Position {
         let black_score = self.black.popcnt();
         let white_score = self.white.popcnt();
 
-        if black_score > white_score {
-            return Some(Outcome::BlackWin);
-        } else if white_score > black_score {
-            return Some(Outcome::WhiteWin);
-        } else {
-            return Some(Outcome::Draw);
+        match black_score.cmp(&white_score) {
+            Ordering::Greater => Some(Outcome::BlackWin),
+            Ordering::Less => Some(Outcome::WhiteWin),
+            Ordering::Equal => Some(Outcome::Draw),
         }
     }
 }
