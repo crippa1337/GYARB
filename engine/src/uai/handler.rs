@@ -24,15 +24,17 @@ pub fn main_loop() {
                 let mut fen = String::new();
 
                 if token[1] == "fen" {
-                    for f in token.iter().take(6).skip(2) {
-                        fen.push(' ');
-                        fen.push_str(f);
+                    for f in token.iter().skip(2) {
+                        fen.push_str(format!("{} ", f).as_str());
                     }
                 } else if token[1] == "startpos" {
                     fen = "x5o/7/7/7/7/7/o5x x 0 1".to_string();
                 } else {
                     continue;
                 }
+
+                println!("{}", fen);
+                fen = fen.trim().to_owned();
 
                 match Position::from_fen(&fen) {
                     Ok(_) => pos = Position::from_fen(&fen).unwrap(),

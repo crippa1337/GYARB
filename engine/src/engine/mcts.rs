@@ -96,7 +96,7 @@ impl Tree {
     pub fn best_move(&self) -> Move {
         assert!(!self.nodes.is_empty());
         let root = &self.nodes[0];
-        let mut best_value = 0.0;
+        let mut best_value = -INFINITY;
         let mut best_move = Move::null();
 
         let children = (*root.children).borrow();
@@ -111,7 +111,7 @@ impl Tree {
             }
         }
 
-        assert_ne!(best_move, Move::null());
+        assert_ne!(best_move, Move::null(), "No best move found");
         best_move
     }
 }
