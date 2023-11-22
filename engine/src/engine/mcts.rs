@@ -75,12 +75,18 @@ impl Tree {
             let mut node = &mut self.nodes[node_idx];
             let mut value = node.rollout();
 
-            while node.parent.is_some() {
+            loop {
                 node.visits += 1;
                 node.total_value += value as f32;
                 value = -value;
                 let idx = node.parent.unwrap();
                 node = &mut self.nodes[idx];
+
+                if idx == 0 {
+                    node.visits += 1;
+                    node.total_value += value as f32;
+                    break;
+                }
             }
         }
     }
