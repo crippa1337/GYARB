@@ -26,7 +26,7 @@ impl Tree {
         const NODEPOOL_SIZE: usize = NODEPOOL_MAX_MEM / std::mem::size_of::<Node>();
         let mut v = Vec::with_capacity(NODEPOOL_SIZE);
 
-        let root = Node {
+        let mut root = Node {
             idx: 0,
             parent: None,
             children: Rc::new(RefCell::new(Vec::new())),
@@ -36,8 +36,10 @@ impl Tree {
             from_action: Move::null(),
         };
 
-        v.push(root);
-        Tree { nodes: v }
+        v.push(root.clone());
+        let mut t = Tree { nodes: v };
+        root.expand(&mut t);
+        t
     }
 
     pub fn select_expand_simulate(&mut self) {
