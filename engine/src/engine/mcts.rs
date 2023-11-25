@@ -135,7 +135,7 @@ impl Node {
             return None;
         }
 
-        let mut best_value = 0.0;
+        let mut best_value = -INFINITY;
         let mut best_child = None;
 
         let children = (*self.children).borrow();
