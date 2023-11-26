@@ -42,53 +42,66 @@ impl Tree {
         t
     }
 
-    pub fn select_expand_simulate(&mut self) {
-        let root_idx = 0;
+    pub fn select_expand_simulate(&mut self) -> Move {
         let time = Instant::now();
+        println!("time: {:?}", time.elapsed());
 
         // Each move is given 5 seconds
         while time.elapsed().as_millis() < 5000 {
-            let mut node_idx = root_idx;
+            let mut node_idx = 0;
 
-            // Find best terminal node
-            loop {
-                let mut node = self.nodes[node_idx].clone();
+            node_idx = self.tree_policy(node_idx);
+            println!("time: {:?}", time.elapsed());
+            let node = &mut self.nodes[node_idx];
+            let value = node.rollout();
+
+            self.backup(node_idx, value);
+        }
+
+        let best_move = self.best_move();
+        assert_ne!(best_move, Move::null(), "No best move found");
+        self.confirm_logic();
+
+        best_move
+    }
+
+    fn tree_policy(&mut self, mut node_idx: usize) -> usize {
+        let mut node = self.nodes[node_idx].clone();
+
+        while !node.position.game_over() {
+            let amount_of_children = (*node.children).borrow().len();
+
+            if amount_of_children == 0 {
+                node.expand(self);
                 let len = (*node.children).borrow().len();
-
-                if node.position.game_over() {
-                    break;
-                }
-
-                node_idx = if let Some(idx) = node.select_child(self) {
-                    idx
-                } else {
-                    node.expand(self);
-                    let len = (*node.children).borrow().len();
-                    let children = (*node.children).borrow_mut();
-                    children[fastrand::usize(..len)]
-                };
-
-                // Found a rollout node
-                if len == 0 && node.visits == 0 {
-                    break;
-                }
+                let children = (*node.children).borrow_mut();
+                node_idx = children[fastrand::usize(..len)];
+            } else {
+                let idx = node.select_child(self);
+                node = self.nodes[idx].clone();
+                continue;
             }
 
-            let mut node = &mut self.nodes[node_idx];
-            let mut value = node.rollout();
+            node = self.nodes[node_idx].clone();
+        }
 
-            loop {
+        node_idx
+    }
+
+    fn backup(&mut self, mut node_idx: usize, mut value: i32) {
+        let mut node = &mut self.nodes[node_idx];
+
+        loop {
+            node.visits += 1;
+            node.total_value += value as f32;
+            value = -value;
+            node_idx = node.parent.unwrap();
+            node = &mut self.nodes[node_idx];
+
+            if node_idx == 0 {
                 node.visits += 1;
                 node.total_value += value as f32;
-                value = -value;
-                let idx = node.parent.unwrap();
-                node = &mut self.nodes[idx];
-
-                if idx == 0 {
-                    node.visits += 1;
-                    node.total_value += value as f32;
-                    break;
-                }
+                break;
             }
         }
     }
@@ -111,8 +124,18 @@ impl Tree {
             }
         }
 
-        assert_ne!(best_move, Move::null(), "No best move found");
         best_move
+    }
+
+    pub fn confirm_logic(&self) {
+        for node in self.nodes.iter() {
+            let mut child_visits = 0;
+            for child_idx in (*node.children).borrow().iter() {
+                let child = &self.nodes[*child_idx];
+                child_visits += child.visits;
+            }
+            assert_eq!(node.visits, child_visits + 1)
+        }
     }
 }
 
@@ -130,11 +153,7 @@ impl Node {
         exploitation + exploration
     }
 
-    fn select_child(&self, tree: &Tree) -> Option<usize> {
-        if self.children.borrow().len() == 0 && self.visits > 0 {
-            return None;
-        }
-
+    fn select_child(&self, tree: &Tree) -> usize {
         let mut best_value = -INFINITY;
         let mut best_child = None;
 
@@ -150,7 +169,7 @@ impl Node {
             }
         }
 
-        best_child.copied()
+        best_child.copied().unwrap()
     }
 
     fn rollout(&self) -> i32 {
