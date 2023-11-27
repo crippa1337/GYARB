@@ -42,14 +42,18 @@ impl Tree {
         t
     }
 
-    pub fn uct(&mut self) -> Move {
+    pub fn uct(&mut self, pos: Position, move_time: u128) -> Move {
         let time = Instant::now();
+        let moves = pos.generate_moves();
+        if moves.len() == 1 {
+            return moves.data[0];
+        }
 
-        // Each move is given 5 seconds
-        while time.elapsed().as_millis() < 5000 {
-            let mut node_idx = 0;
+        let mut root = Node::new();
+        root.position = pos;
 
-            node_idx = self.tree_policy(node_idx);
+        while time.elapsed().as_millis() < move_time {
+            let selection = self.tree_policy(root);
             let node = &mut self.nodes[node_idx];
             let value = node.rollout();
 
@@ -63,20 +67,18 @@ impl Tree {
         best_move
     }
 
-    fn tree_policy(&mut self, mut node_idx: usize) -> usize {
-        let mut node = self.nodes[node_idx].clone();
-
+    fn tree_policy(&mut self, mut node: Node) -> Node {
         while !node.is_terminal() {
             if node.is_expandable() {
                 node.expand(self);
                 break;
             } else {
-                node_idx = node.select_child(self);
+                node = node.select_child(self);
                 node = self.nodes[node_idx].clone();
             }
         }
 
-        node_idx
+        node
     }
 
     fn backup(&mut self, mut node_idx: usize, mut value: i32) {
@@ -131,6 +133,18 @@ impl Tree {
 }
 
 impl Node {
+    fn new() -> Self {
+        Node {
+            idx: 0,
+            parent: None,
+            children: Rc::new(RefCell::new(Vec::new())),
+            visits: 0,
+            total_value: 0.0,
+            position: Position::default(),
+            from_action: Move::null(),
+        }
+    }
+
     fn ucb1(&self, tree: &Tree) -> f32 {
         if self.visits == 0 {
             return INFINITY;
@@ -225,7 +239,7 @@ impl Node {
     }
 
     fn is_terminal(&self) -> bool {
-        self.position.game_over()
+        !self.is_expanded() && !self.is_expandable()
     }
 
     fn is_expanded(&self) -> bool {
