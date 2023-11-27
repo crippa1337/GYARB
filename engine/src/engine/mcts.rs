@@ -6,7 +6,7 @@ const INFINITY: f32 = 1_000_000.0;
 const C: f32 = SQRT_2; // sqrt(2)
 const NODEPOOL_MAX_MEM: usize = 2 * 1024 * 1024 * 1024; // 2GB
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct Node {
     idx: usize,
     parent: Option<usize>,
@@ -42,16 +42,14 @@ impl Tree {
         t
     }
 
-    pub fn select_expand_simulate(&mut self) -> Move {
+    pub fn uct(&mut self) -> Move {
         let time = Instant::now();
-        println!("time: {:?}", time.elapsed());
 
         // Each move is given 5 seconds
         while time.elapsed().as_millis() < 5000 {
             let mut node_idx = 0;
 
             node_idx = self.tree_policy(node_idx);
-            println!("time: {:?}", time.elapsed());
             let node = &mut self.nodes[node_idx];
             let value = node.rollout();
 
@@ -59,7 +57,7 @@ impl Tree {
         }
 
         let best_move = self.best_move();
-        assert_ne!(best_move, Move::null(), "No best move found");
+        debug_assert_ne!(best_move, Move::null(), "No best move found");
         self.confirm_logic();
 
         best_move
@@ -68,21 +66,14 @@ impl Tree {
     fn tree_policy(&mut self, mut node_idx: usize) -> usize {
         let mut node = self.nodes[node_idx].clone();
 
-        while !node.position.game_over() {
-            let amount_of_children = (*node.children).borrow().len();
-
-            if amount_of_children == 0 {
+        while !node.is_terminal() {
+            if node.is_expandable() {
                 node.expand(self);
-                let len = (*node.children).borrow().len();
-                let children = (*node.children).borrow_mut();
-                node_idx = children[fastrand::usize(..len)];
+                break;
             } else {
-                let idx = node.select_child(self);
-                node = self.nodes[idx].clone();
-                continue;
+                node_idx = node.select_child(self);
+                node = self.nodes[node_idx].clone();
             }
-
-            node = self.nodes[node_idx].clone();
         }
 
         node_idx
@@ -107,7 +98,7 @@ impl Tree {
     }
 
     pub fn best_move(&self) -> Move {
-        assert!(!self.nodes.is_empty());
+        debug_assert!(!self.nodes.is_empty());
         let root = &self.nodes[0];
         let mut best_value = -INFINITY;
         let mut best_move = Move::null();
@@ -197,25 +188,48 @@ impl Node {
     }
 
     fn expand(&mut self, tree: &mut Tree) {
-        let moves = self.position.generate_moves();
+        debug_assert!(self.is_expandable());
+        debug_assert!(!self.is_terminal());
 
-        for m in moves.as_slice() {
-            let mut new_position = self.position;
-            new_position.make_move(*m);
+        let idx = self.children.borrow().len();
+        let mut new_pos = self.position;
+        let mv = new_pos.generate_moves().data[idx];
+        new_pos.make_move(mv);
 
-            let new_node = Node {
-                idx: tree.nodes.len(),
-                parent: Some(self.idx),
-                children: Rc::new(RefCell::new(Vec::new())),
-                visits: 0,
-                total_value: 0.0,
-                position: new_position,
-                from_action: *m,
-            };
+        let new_node = Node {
+            idx: tree.nodes.len(),
+            parent: Some(self.idx),
+            children: Rc::new(RefCell::new(Vec::new())),
+            visits: 0,
+            total_value: 0.0,
+            position: new_pos,
+            from_action: mv,
+        };
 
-            (*self.children).borrow_mut().push(new_node.idx);
-            tree.nodes.push(new_node);
-        }
+        debug_assert_eq!(tree.nodes[new_node.parent.unwrap()], tree.nodes[self.idx]);
+        debug_assert_eq!(
+            new_node.from_action,
+            self.position.generate_moves().data[idx]
+        );
+        debug_assert_eq!(new_node.visits, 0);
+        debug_assert_eq!(new_node.total_value, 0.0);
+        debug_assert_eq!(new_node.children.borrow().len(), 0);
+        debug_assert!(new_node.is_expanded());
+
+        (*self.children).borrow_mut().push(new_node.idx);
+        tree.nodes.push(new_node);
+    }
+
+    fn is_expandable(&self) -> bool {
+        self.children.borrow().len() < self.position.generate_moves().len()
+    }
+
+    fn is_terminal(&self) -> bool {
+        self.position.game_over()
+    }
+
+    fn is_expanded(&self) -> bool {
+        !self.children.borrow().is_empty()
     }
 }
 
