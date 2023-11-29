@@ -47,7 +47,7 @@ impl Tree {
 
         let best_move = self.best_move();
         debug_assert_ne!(best_move, Move::null(), "No best move found");
-        self.confirm_logic();
+        // self.confirm_logic();
 
         best_move
     }
@@ -185,7 +185,6 @@ impl Node {
     fn rollout(&self) -> f32 {
         // Random mean rollouts
         let mut position: Position = self.position;
-        let s2m = position.turn;
 
         while !position.game_over() {
             let moves = position.generate_moves();
@@ -193,21 +192,30 @@ impl Node {
             position.make_move(random_move);
         }
 
-        let value = match position.winner().unwrap() {
+        match position.winner().unwrap() {
             Outcome::WhiteWin => 1.0,
             Outcome::BlackWin => 0.0,
             Outcome::Draw => 0.5,
-        };
+        }
+    }
 
-        if s2m == Side::White {
-            value
+    fn mean_rollout(&self) -> f32 {
+        let mut sum = 0.0;
+        let repetitions = 10;
+
+        for _ in 0..repetitions {
+            sum += self.rollout();
+        }
+
+        if self.position.turn == Side::White {
+            sum / repetitions as f32
         } else {
-            1.0 - value
+            1.0 - (sum / repetitions as f32)
         }
     }
 
     fn default_policy(&self) -> f32 {
-        self.rollout()
+        1.0 - self.mean_rollout()
     }
 
     fn expand(&self, tree: &mut Tree) -> Node {
