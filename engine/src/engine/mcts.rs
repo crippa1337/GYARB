@@ -2,7 +2,7 @@ use super::moves::Move;
 use crate::ataxx::position::{Outcome, Position, Side};
 use std::{cell::RefCell, f32::consts::SQRT_2, rc::Rc, time::Instant};
 
-const INFINITY: f32 = 1_000_000.0;
+const INFINITY: f32 = 10_000_000.0;
 const C: f32 = SQRT_2;
 const NODEPOOL_MAX_MEM: usize = 2 * 1024 * 1024 * 1024; // 2GB
 
@@ -24,7 +24,7 @@ pub struct Tree {
 impl Tree {
     pub fn new() -> Self {
         const NODEPOOL_SIZE: usize = NODEPOOL_MAX_MEM / std::mem::size_of::<Node>();
-        let mut v = Vec::with_capacity(NODEPOOL_SIZE);
+        let v = Vec::with_capacity(NODEPOOL_SIZE);
         Tree { nodes: v }
     }
 
@@ -37,9 +37,10 @@ impl Tree {
 
         let mut root = Node::new();
         root.position = pos;
+        self.nodes.push(root.clone());
 
         while time.elapsed().as_millis() < move_time {
-            let selection = self.tree_policy(root);
+            let selection = self.tree_policy(root.clone());
             let value = selection.default_policy();
             self.backup_negamax(selection.idx, value);
         }
@@ -54,31 +55,34 @@ impl Tree {
     fn tree_policy(&mut self, mut node: Node) -> Node {
         while !node.is_terminal() {
             if node.is_expandable() {
-                node.expand(self);
+                node = node.expand(self);
                 break;
             } else {
                 let node_idx = node.best_child(self);
-                node = self.nodes[node_idx];
+                node = self.nodes[node_idx].clone();
             }
         }
 
         node
     }
 
-    fn backup_negamax(&mut self, mut node_idx: usize, mut value: i32) {
+    fn backup_negamax(&mut self, mut node_idx: usize, mut delta: f32) {
         let mut node = &mut self.nodes[node_idx];
-        assert!(!node.is_expanded());
+        debug_assert!(!node.is_expanded());
 
         loop {
             node.visits += 1;
-            node.total_value += value as f32;
-            value = -value;
+            node.total_value += delta;
+            debug_assert!(0.0 <= node.total_value && node.total_value as usize <= node.visits);
+
+            delta = 1.0 - delta;
             node_idx = node.parent.unwrap();
             node = &mut self.nodes[node_idx];
 
+            // Root
             if node_idx == 0 {
                 node.visits += 1;
-                node.total_value += value as f32;
+                node.total_value += delta;
                 break;
             }
         }
@@ -112,7 +116,7 @@ impl Tree {
                 let child = &self.nodes[*child_idx];
                 child_visits += child.visits;
             }
-            assert_eq!(node.visits, child_visits + 1)
+            debug_assert_eq!(node.visits, child_visits + 1)
         }
     }
 }
@@ -139,11 +143,15 @@ impl Node {
         let exploration = C
             * ((2.0 * (tree.nodes[self.parent.unwrap()].visits as f32).ln()) / self.visits as f32)
                 .sqrt();
+        let reward = exploitation + exploration;
 
-        exploitation + exploration
+        debug_assert!(!reward.is_nan());
+
+        reward
     }
 
     fn best_child(&self, tree: &Tree) -> usize {
+        debug_assert!(self.is_expanded());
         let mut best_value = -INFINITY;
         let mut best_child = None;
 
@@ -159,10 +167,23 @@ impl Node {
             }
         }
 
+        if best_child.is_none() {
+            println!("No best child found");
+            for child_idx in children.iter() {
+                let child = &tree.nodes[*child_idx];
+                println!(
+                    "Child: {} | Visits: {} | Value: {}",
+                    child.from_action,
+                    child.visits,
+                    child.ucb1(tree)
+                );
+            }
+        }
         best_child.copied().unwrap()
     }
 
-    fn rollout(&self) -> i32 {
+    fn rollout(&self) -> f32 {
+        // Random mean rollouts
         let mut position: Position = self.position;
         let s2m = position.turn;
 
@@ -172,25 +193,24 @@ impl Node {
             position.make_move(random_move);
         }
 
-        let outcome_score = match position.winner() {
-            Some(Outcome::WhiteWin) => 1,
-            Some(Outcome::BlackWin) => 0,
-            Some(Outcome::Draw) => 0.5,
-            None => panic!("Game not over"),
+        let value = match position.winner().unwrap() {
+            Outcome::WhiteWin => 1.0,
+            Outcome::BlackWin => 0.0,
+            Outcome::Draw => 0.5,
         };
 
         if s2m == Side::White {
-            outcome_score
+            value
         } else {
-            -outcome_score
+            1.0 - value
         }
     }
 
-    fn default_policy(&self) -> i32 {
-        1.0 - self.rollout()
+    fn default_policy(&self) -> f32 {
+        self.rollout()
     }
 
-    fn expand(&mut self, tree: &mut Tree) {
+    fn expand(&self, tree: &mut Tree) -> Node {
         debug_assert!(self.is_expandable());
         debug_assert!(!self.is_terminal());
 
@@ -217,10 +237,12 @@ impl Node {
         debug_assert_eq!(new_node.visits, 0);
         debug_assert_eq!(new_node.total_value, 0.0);
         debug_assert_eq!(new_node.children.borrow().len(), 0);
-        debug_assert!(new_node.is_expanded());
 
         (*self.children).borrow_mut().push(new_node.idx);
-        tree.nodes.push(new_node);
+        tree.nodes.push(new_node.clone());
+        debug_assert!(self.is_expanded());
+
+        new_node
     }
 
     fn is_expandable(&self) -> bool {
@@ -240,10 +262,10 @@ impl Node {
 mod tests {
 
     #[test]
-    fn test_1() {
+    fn sanity() {
         use super::*;
-        let mut tree = Tree::new(Position::default());
-        tree.uct();
+        let mut tree = Tree::new();
+        tree.uct(Position::default(), 5000);
         assert!(!tree.nodes.is_empty());
     }
 }

@@ -7,6 +7,7 @@ pub enum Side {
     White,
 }
 
+#[derive(PartialEq)]
 pub enum Outcome {
     BlackWin,
     WhiteWin,
