@@ -5,4 +5,3 @@ edition = "2021"
 
 [dependencies]
 tetra = { version = "0.8.0", features = [] }
-gethostname = "0.4.3"

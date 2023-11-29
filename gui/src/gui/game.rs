@@ -116,7 +116,6 @@ pub struct AppState {
     players: [PlayerType; 2],
     assets: Option<Assets>,
     to_play: Vec<String>,
-    id: u64,
 }
 
 impl Default for AppState {
@@ -130,7 +129,6 @@ impl Default for AppState {
             ],
             assets: None,
             to_play: Vec::new(),
-            id: 0,
         }
     }
 }
@@ -153,15 +151,10 @@ impl AppState {
 
                 engine
             });
-            let mut hasher = DefaultHasher::new();
-            let computer = gethostname().into_string().unwrap();
-            computer.hash(&mut hasher);
-            let id = hasher.finish();
             let state = Self {
                 players: [PlayerType::new_human(player_name.clone()), engine],
                 assets: Assets::new(ctx).ok(),
                 to_play: to_play.clone(),
-                id,
                 ..Self::default()
             };
             Ok(state)
@@ -170,13 +163,17 @@ impl AppState {
 
     pub fn write_results(&self) {
         // Check if file exists
-        let mut file = if std::fs::metadata(format!("{}.csv", self.id)).is_ok() {
+        let player_name = match &self.players[0] {
+            PlayerType::Human(player) => player.name.clone(),
+            _ => "Engine".to_string(),
+        };
+        let mut file = if std::fs::metadata(format!("{}.csv", player_name)).is_ok() {
             std::fs::OpenOptions::new()
                 .append(true)
                 .open(format!("{}.csv", self.id))
                 .unwrap()
         } else {
-            let mut file = std::fs::File::create(format!("{}.csv", self.id)).unwrap();
+            let mut file = std::fs::File::create(format!("{}.csv", player_name)).unwrap();
             file.write_all("Result,Player,Engine,Moves\n".as_bytes())
                 .unwrap();
             file
