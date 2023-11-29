@@ -5,9 +5,10 @@ fn gui_app() -> tetra::Result {
     use ataxx::gui::game::AppState;
     let size = TILE_SIZE as i32 * BOARD_SIZE as i32;
     let games = vec![
-        "x2-2o/3-3/3-3/---1---/3-3/3-3/o2-2x x 0 1".to_owned(),
-        "x5o/7/7/7/7/7/o5x x 0 1".to_owned(),
+        //"x2-2o/3-3/3-3/---1---/3-3/3-3/o2-2x x 0 1".to_owned(),
         "x5o/7/2-1-2/7/2-1-2/7/o5x x 0 1".to_owned(),
+        "x2-2o/7/7/-5-/7/7/o2-2x x 0 1".to_owned(),
+        "x5o/7/7/7/7/7/o5x x 0 1".to_owned(),
     ];
     ContextBuilder::new("Ataxx", size, size)
         .show_mouse(true)
