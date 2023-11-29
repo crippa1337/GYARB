@@ -46,8 +46,8 @@ pub fn main_loop() {
             }
 
             "go" => {
-                let mut tree = Tree::new(pos);
-                let mv = tree.select_expand_simulate();
+                let mut tree = Tree::new();
+                let mv = tree.uct(pos, 5000);
                 println!("bestmove {}", mv);
             }
 
