@@ -4,7 +4,6 @@ use std::{
     io::Write,
 };
 
-use gethostname::gethostname;
 use tetra::{
     graphics::{
         mesh::{Mesh, ShapeStyle},
@@ -164,13 +163,13 @@ impl AppState {
     pub fn write_results(&self) {
         // Check if file exists
         let player_name = match &self.players[0] {
-            PlayerType::Human(player) => player.name.clone(),
+            PlayerType::Human(player) => player._name.clone(),
             _ => "Engine".to_string(),
         };
         let mut file = if std::fs::metadata(format!("{}.csv", player_name)).is_ok() {
             std::fs::OpenOptions::new()
                 .append(true)
-                .open(format!("{}.csv", self.id))
+                .open(format!("{}.csv", player_name))
                 .unwrap()
         } else {
             let mut file = std::fs::File::create(format!("{}.csv", player_name)).unwrap();

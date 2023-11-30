@@ -9,7 +9,7 @@ pub enum PlayerType {
 }
 
 pub struct Human {
-    _name: String,
+    pub _name: String,
     pub(super) selected_tile: Option<(u8, u8)>,
 }
 
