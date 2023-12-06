@@ -222,6 +222,13 @@ impl<const S: usize> Board<S> {
             return Ok(());
         }
         let distance = mv.chebyshev_distance();
+        let to_usize = (mv.to.0 as usize, mv.to.1 as usize);
+        {
+            let to_tile = self.get_tile(to_usize);
+            if to_tile.get_stone().is_some() || to_tile.is_blocked() {
+                return Err(());
+            }
+        }
         let from_usize = (mv.from.0 as usize, mv.from.1 as usize);
         let from_tile = self.get_tile_mut(from_usize);
         if from_tile.get_stone().is_none() && mv.from != mv.to {
@@ -232,12 +239,7 @@ impl<const S: usize> Board<S> {
         } else {
             Some(Stone::from(player))
         };
-
-        let to_usize = (mv.to.0 as usize, mv.to.1 as usize);
         let to_tile = self.get_tile_mut(to_usize);
-        if to_tile.get_stone().is_some() || to_tile.is_blocked() {
-            return Err(());
-        }
         to_tile.set_stone(stone.unwrap());
 
         let neighbours = self.get_surrounding_tiles(to_usize);
